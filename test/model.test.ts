@@ -37,4 +37,17 @@ describe("visual definition edits", () => {
     const updated = applyCanvasEdit(sampleDefinition(), { kind: "removeSchema", value: "health" });
     expect(updated.flow.every((block) => !block.bindings.includes("health"))).toBe(true);
   });
+
+  it("edits typed schema fields with safe identifiers", () => {
+    const renamed = applyCanvasEdit(sampleDefinition(), { kind: "setSchemaFieldName", value: "health", fieldIndex: 0, name: "hitPoints" });
+    const updated = applyCanvasEdit(renamed, { kind: "setSchemaFieldType", value: "health", fieldIndex: 0, fieldType: "u16" });
+    expect(updated.schemas.find((schema) => schema.id === "health")?.fields[0]).toEqual({ name: "hitPoints", type: "u16" });
+  });
+
+  it("creates an executable state mutation block", () => {
+    const withBlock = applyCanvasEdit(sampleDefinition(), { kind: "addBlock", value: "mutateState" });
+    const block = withBlock.flow.at(-1)!;
+    const updated = applyCanvasEdit(withBlock, { kind: "setStateMutation", value: block.id, mutation: { field: "currency", operation: "add", amount: 50 } });
+    expect(updated.flow.at(-1)?.stateMutation).toEqual({ field: "currency", operation: "add", amount: 50 });
+  });
 });

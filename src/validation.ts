@@ -20,6 +20,12 @@ export function validateDefinition(definition: TowerDefenseDefinition): Diagnost
     if (schemas.has(schema.name)) diagnostics.push({ path: `schemas.${schema.id}`, message: "Schema names must be unique." });
     schemas.add(schema.name);
     if (!schema.fields.length) diagnostics.push({ path: `schemas.${schema.id}`, message: "Schemas need at least one field." });
+    const fields = new Set<string>();
+    for (const field of schema.fields) {
+      if (!/^[a-z][A-Za-z0-9]*$/.test(field.name)) diagnostics.push({ path: `schemas.${schema.id}.${field.name}`, message: "Schema field names must be camelCase." });
+      if (fields.has(field.name)) diagnostics.push({ path: `schemas.${schema.id}.${field.name}`, message: "Schema field names must be unique." });
+      fields.add(field.name);
+    }
   }
   const schemaIds = new Set(definition.schemas.map((schema) => schema.id));
   for (const block of definition.flow) {

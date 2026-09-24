@@ -15,6 +15,7 @@ const systemFunctions: Record<TowerDefenseDefinition["flow"][number]["kind"], { 
   attackTargets: { label: "Attack Targets", primary: "attacksPerTick" },
   applyDamage: { label: "Apply Damage", primary: "damage" },
   cleanupDead: { label: "Cleanup Dead", primary: "threshold" },
+  mutateState: { label: "Modify Game State", primary: "" },
   customSystem: { label: "Custom System", primary: "" }
 };
 
@@ -32,6 +33,11 @@ export function generateTowerDefense(definition: TowerDefenseDefinition): Genera
     const system = systemFunctions[block.kind];
     const contract = block.bindings.map((id) => schemaNames.get(id)).filter(Boolean).join(", ") || "no visual data bindings";
     if (block.kind === "customSystem") return `local function ${functionName(block.id)}(state: State, context: Context): State\n\t-- Custom System block (${block.id}); binds ${contract}. Edit this from the Forge graph inspector.\n-- <forge:user-code id="${block.id}">\n${block.code?.trim() || "\treturn state"}\n-- </forge:user-code>\nend`;
+    if (block.kind === "mutateState") {
+      const mutation = block.stateMutation ?? { field: "currency", operation: "add", amount: 10 };
+      const value = mutation.operation === "add" ? `state.${mutation.field} + ${mutation.amount}` : String(mutation.amount);
+      return `local function ${functionName(block.id)}(state: State, context: Context): State\n\t-- Visual state mutation: ${mutation.operation} ${mutation.amount} to ${mutation.field}; binds ${contract}.\n\treturn { wave = ${mutation.field === "wave" ? value : "state.wave"}, currency = ${mutation.field === "currency" ? value : "state.currency"}, lives = ${mutation.field === "lives" ? value : "state.lives"}, tick = state.tick + 1, lastSystem = ${quote(block.label)}, lastValue = ${mutation.amount} }\nend`;
+    }
     const primaryValue = block.config[system.primary];
     const wave = block.kind === "spawnWave" ? `state.wave + ${primaryValue}` : "state.wave";
     return `local function ${functionName(block.id)}(state: State, context: Context): State\n\t-- ${system.label} block (${block.id}); binds ${contract}; visual property ${system.primary} = ${primaryValue}\n\treturn { wave = ${wave}, currency = state.currency, lives = state.lives, tick = state.tick + 1, lastSystem = ${quote(block.label)}, lastValue = ${primaryValue} }\nend`;

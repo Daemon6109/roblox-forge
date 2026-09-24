@@ -8,10 +8,12 @@ export type NetworkMessage = {
   fields: Field[];
 };
 
-export type SimulationBlockKind = "spawnWave" | "moveEnemies" | "acquireTargets" | "attackTargets" | "applyDamage" | "cleanupDead" | "customSystem";
+export type SimulationBlockKind = "spawnWave" | "moveEnemies" | "acquireTargets" | "attackTargets" | "applyDamage" | "cleanupDead" | "mutateState" | "customSystem";
 export type GraphPosition = { x: number; y: number };
 export type FlowConnection = { from: string; to: string };
-export type SimulationBlock = { id: string; kind: SimulationBlockKind; enabled: boolean; label: string; position: GraphPosition; config: Record<string, number>; bindings: string[]; code?: string };
+export type StateField = "wave" | "currency" | "lives";
+export type StateMutation = { field: StateField; operation: "add" | "set"; amount: number };
+export type SimulationBlock = { id: string; kind: SimulationBlockKind; enabled: boolean; label: string; position: GraphPosition; config: Record<string, number>; bindings: string[]; stateMutation?: StateMutation; code?: string };
 
 export type TowerDefenseDefinition = {
   version: 1;
@@ -39,6 +41,7 @@ export type CanvasEdit =
   | { kind: "setBlockPosition"; value: string; position: GraphPosition }
   | { kind: "setBlockLabel"; value: string; label: string }
   | { kind: "setBlockConfig"; value: string; key: string; amount: number }
+  | { kind: "setStateMutation"; value: string; mutation: StateMutation }
   | { kind: "setBlockCode"; value: string; code: string }
   | { kind: "toggleBlockBinding"; value: string; schemaId: string }
   | { kind: "connectBlocks"; from: string; to: string }
@@ -46,13 +49,18 @@ export type CanvasEdit =
   | { kind: "addSchema"; schemaKind: SchemaKind }
   | { kind: "removeSchema"; value: string }
   | { kind: "setSchemaName"; value: string; name: string }
-  | { kind: "addSchemaField"; value: string };
+  | { kind: "addSchemaField"; value: string }
+  | { kind: "setSchemaFieldName"; value: string; fieldIndex: number; name: string }
+  | { kind: "setSchemaFieldType"; value: string; fieldIndex: number; fieldType: Field["type"] }
+  | { kind: "removeSchemaField"; value: string; fieldIndex: number };
 
 const topologies = new Set<TowerDefenseDefinition["topology"]>(["spline", "graph", "lanes"]);
 const economies = new Set<TowerDefenseDefinition["economy"]>(["shared", "per-player"]);
 const targetModes = new Set<TowerDefenseDefinition["targeting"][number]>(["first", "last", "strongest", "weakest", "nearest"]);
 const schemaKinds = new Set<SchemaKind>(["component", "resource", "event"]);
-const blockKinds = new Set<SimulationBlockKind>(["spawnWave", "moveEnemies", "acquireTargets", "attackTargets", "applyDamage", "cleanupDead", "customSystem"]);
+const fieldTypes = new Set<Field["type"]>(["string", "number", "boolean", "Vector3", "u16"]);
+const stateFields = new Set<StateField>(["wave", "currency", "lives"]);
+const blockKinds = new Set<SimulationBlockKind>(["spawnWave", "moveEnemies", "acquireTargets", "attackTargets", "applyDamage", "cleanupDead", "mutateState", "customSystem"]);
 const blockDefaults: Record<SimulationBlockKind, { label: string; config: Record<string, number> }> = {
   spawnWave: { label: "Spawn Wave", config: { waveIncrement: 1 } },
   moveEnemies: { label: "Move Enemies", config: { speed: 1 } },
@@ -60,6 +68,7 @@ const blockDefaults: Record<SimulationBlockKind, { label: string; config: Record
   attackTargets: { label: "Attack Targets", config: { attacksPerTick: 1 } },
   applyDamage: { label: "Apply Damage", config: { damage: 10 } },
   cleanupDead: { label: "Cleanup Dead", config: { threshold: 0 } },
+  mutateState: { label: "Modify Game State", config: {} },
   customSystem: { label: "Custom System", config: {} }
 };
 
@@ -73,7 +82,7 @@ const defaultFlow = (): SimulationBlock[] => [
 ];
 
 export function hydrateDefinition(value: Omit<TowerDefenseDefinition, "flow" | "connections" | "schemas"> & Partial<Pick<TowerDefenseDefinition, "flow" | "connections" | "schemas">>): TowerDefenseDefinition {
-  const flow = value.flow?.length ? value.flow.map((block, index) => ({ ...structuredClone(blockDefaults[block.kind]), ...block, bindings: block.bindings ?? [], position: block.position ?? { x: 260, y: 60 + index * 130 }, config: { ...blockDefaults[block.kind].config, ...block.config } })) : defaultFlow();
+  const flow = value.flow?.length ? value.flow.map((block, index) => ({ ...structuredClone(blockDefaults[block.kind]), ...block, bindings: block.bindings ?? [], stateMutation: block.kind === "mutateState" ? block.stateMutation ?? { field: "currency", operation: "add", amount: 10 } : block.stateMutation, position: block.position ?? { x: 260, y: 60 + index * 130 }, config: { ...blockDefaults[block.kind].config, ...block.config } })) : defaultFlow();
   const connections = value.connections ?? flow.slice(1).map((block, index) => ({ from: flow[index].id, to: block.id }));
   return { ...value, flow, connections, schemas: value.schemas ?? defaultSchemas() };
 }
@@ -113,7 +122,7 @@ export function applyCanvasEdit(definition: TowerDefenseDefinition, edit: Canvas
     case "addBlock": {
       if (!blockKinds.has(edit.value)) throw new Error("Unsupported simulation block.");
       const number = next.flow.filter((block) => block.kind === edit.value).length + 1;
-      next.flow.push({ id: `${edit.value}-${number}`, kind: edit.value, enabled: true, bindings: [], position: { x: 480, y: 100 + number * 45 }, ...structuredClone(blockDefaults[edit.value]) });
+      next.flow.push({ id: `${edit.value}-${number}`, kind: edit.value, enabled: true, bindings: [], stateMutation: edit.value === "mutateState" ? { field: "currency", operation: "add", amount: 10 } : undefined, position: { x: 480, y: 100 + number * 45 }, ...structuredClone(blockDefaults[edit.value]) });
       break;
     }
     case "toggleBlock": {
@@ -149,6 +158,12 @@ export function applyCanvasEdit(definition: TowerDefenseDefinition, edit: Canvas
       const block = next.flow.find((candidate) => candidate.id === edit.value);
       if (!block || !(edit.key in blockDefaults[block.kind].config) || !Number.isFinite(edit.amount)) throw new Error("Invalid block property.");
       block.config[edit.key] = edit.amount;
+      break;
+    }
+    case "setStateMutation": {
+      const block = next.flow.find((candidate) => candidate.id === edit.value);
+      if (!block || block.kind !== "mutateState" || !stateFields.has(edit.mutation.field) || !["add", "set"].includes(edit.mutation.operation) || !Number.isFinite(edit.mutation.amount)) throw new Error("Invalid state mutation.");
+      block.stateMutation = { ...edit.mutation };
       break;
     }
     case "setBlockCode": {
@@ -195,6 +210,26 @@ export function applyCanvasEdit(definition: TowerDefenseDefinition, edit: Canvas
       const schema = next.schemas.find((candidate) => candidate.id === edit.value);
       if (!schema) throw new Error("Schema was not found.");
       schema.fields.push({ name: `value${schema.fields.length + 1}`, type: "number" });
+      break;
+    }
+    case "setSchemaFieldName": {
+      const schema = next.schemas.find((candidate) => candidate.id === edit.value);
+      if (!schema || !schema.fields[edit.fieldIndex] || !/^[a-z][A-Za-z0-9]*$/.test(edit.name)) throw new Error("Schema field names must be camelCase.");
+      if (schema.fields.some((field, index) => index !== edit.fieldIndex && field.name === edit.name)) throw new Error("Schema field names must be unique.");
+      schema.fields[edit.fieldIndex].name = edit.name;
+      break;
+    }
+    case "setSchemaFieldType": {
+      const schema = next.schemas.find((candidate) => candidate.id === edit.value);
+      if (!schema || !schema.fields[edit.fieldIndex] || !fieldTypes.has(edit.fieldType)) throw new Error("Unsupported schema field type.");
+      schema.fields[edit.fieldIndex].type = edit.fieldType;
+      break;
+    }
+    case "removeSchemaField": {
+      const schema = next.schemas.find((candidate) => candidate.id === edit.value);
+      if (!schema || !schema.fields[edit.fieldIndex]) throw new Error("Schema field was not found.");
+      if (schema.fields.length === 1) throw new Error("Schemas need at least one field.");
+      schema.fields.splice(edit.fieldIndex, 1);
       break;
     }
   }

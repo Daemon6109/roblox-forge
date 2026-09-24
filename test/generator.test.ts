@@ -37,4 +37,13 @@ describe("Tower Defense generator", () => {
     expect(simulation).toContain("Custom System block (customSystem-1)");
     expect(simulation).toContain('id="customSystem-1"');
   });
+
+  it("turns a state mutation block into concrete Luau", () => {
+    const definition = sampleDefinition();
+    definition.flow = [{ ...definition.flow[0], id: "award-coins", kind: "mutateState", label: "Award coins", config: {}, bindings: [], stateMutation: { field: "currency", operation: "add", amount: 50 } }];
+    definition.connections = [];
+    const simulation = generateTowerDefense(definition).find((file) => file.path === "src/shared/domain/Simulation.luau")?.content ?? "";
+    expect(simulation).toContain("state.currency + 50");
+    expect(simulation).toContain("Visual state mutation: add 50 to currency");
+  });
 });
