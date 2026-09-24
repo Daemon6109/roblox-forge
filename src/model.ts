@@ -11,7 +11,7 @@ export type NetworkMessage = {
 export type SimulationBlockKind = "spawnWave" | "moveEnemies" | "acquireTargets" | "attackTargets" | "applyDamage" | "cleanupDead" | "customSystem";
 export type GraphPosition = { x: number; y: number };
 export type FlowConnection = { from: string; to: string };
-export type SimulationBlock = { id: string; kind: SimulationBlockKind; enabled: boolean; label: string; position: GraphPosition; config: Record<string, number>; code?: string };
+export type SimulationBlock = { id: string; kind: SimulationBlockKind; enabled: boolean; label: string; position: GraphPosition; config: Record<string, number>; bindings: string[]; code?: string };
 
 export type TowerDefenseDefinition = {
   version: 1;
@@ -40,6 +40,7 @@ export type CanvasEdit =
   | { kind: "setBlockLabel"; value: string; label: string }
   | { kind: "setBlockConfig"; value: string; key: string; amount: number }
   | { kind: "setBlockCode"; value: string; code: string }
+  | { kind: "toggleBlockBinding"; value: string; schemaId: string }
   | { kind: "connectBlocks"; from: string; to: string }
   | { kind: "disconnectBlock"; value: string }
   | { kind: "addSchema"; schemaKind: SchemaKind }
@@ -63,16 +64,16 @@ const blockDefaults: Record<SimulationBlockKind, { label: string; config: Record
 };
 
 const defaultFlow = (): SimulationBlock[] => [
-  { id: "spawn-wave", kind: "spawnWave", enabled: true, position: { x: 260, y: 60 }, ...structuredClone(blockDefaults.spawnWave) },
-  { id: "move-enemies", kind: "moveEnemies", enabled: true, position: { x: 260, y: 190 }, ...structuredClone(blockDefaults.moveEnemies) },
-  { id: "acquire-targets", kind: "acquireTargets", enabled: true, position: { x: 260, y: 320 }, ...structuredClone(blockDefaults.acquireTargets) },
-  { id: "attack-targets", kind: "attackTargets", enabled: true, position: { x: 260, y: 450 }, ...structuredClone(blockDefaults.attackTargets) },
-  { id: "apply-damage", kind: "applyDamage", enabled: true, position: { x: 260, y: 580 }, ...structuredClone(blockDefaults.applyDamage) },
-  { id: "cleanup-dead", kind: "cleanupDead", enabled: true, position: { x: 260, y: 710 }, ...structuredClone(blockDefaults.cleanupDead) }
+  { id: "spawn-wave", kind: "spawnWave", enabled: true, position: { x: 260, y: 60 }, bindings: ["game-state"], ...structuredClone(blockDefaults.spawnWave) },
+  { id: "move-enemies", kind: "moveEnemies", enabled: true, position: { x: 260, y: 190 }, bindings: ["health"], ...structuredClone(blockDefaults.moveEnemies) },
+  { id: "acquire-targets", kind: "acquireTargets", enabled: true, position: { x: 260, y: 320 }, bindings: ["health"], ...structuredClone(blockDefaults.acquireTargets) },
+  { id: "attack-targets", kind: "attackTargets", enabled: true, position: { x: 260, y: 450 }, bindings: ["health"], ...structuredClone(blockDefaults.attackTargets) },
+  { id: "apply-damage", kind: "applyDamage", enabled: true, position: { x: 260, y: 580 }, bindings: ["health"], ...structuredClone(blockDefaults.applyDamage) },
+  { id: "cleanup-dead", kind: "cleanupDead", enabled: true, position: { x: 260, y: 710 }, bindings: ["health"], ...structuredClone(blockDefaults.cleanupDead) }
 ];
 
 export function hydrateDefinition(value: Omit<TowerDefenseDefinition, "flow" | "connections" | "schemas"> & Partial<Pick<TowerDefenseDefinition, "flow" | "connections" | "schemas">>): TowerDefenseDefinition {
-  const flow = value.flow?.length ? value.flow.map((block, index) => ({ ...structuredClone(blockDefaults[block.kind]), ...block, position: block.position ?? { x: 260, y: 60 + index * 130 }, config: { ...blockDefaults[block.kind].config, ...block.config } })) : defaultFlow();
+  const flow = value.flow?.length ? value.flow.map((block, index) => ({ ...structuredClone(blockDefaults[block.kind]), ...block, bindings: block.bindings ?? [], position: block.position ?? { x: 260, y: 60 + index * 130 }, config: { ...blockDefaults[block.kind].config, ...block.config } })) : defaultFlow();
   const connections = value.connections ?? flow.slice(1).map((block, index) => ({ from: flow[index].id, to: block.id }));
   return { ...value, flow, connections, schemas: value.schemas ?? defaultSchemas() };
 }
@@ -112,7 +113,7 @@ export function applyCanvasEdit(definition: TowerDefenseDefinition, edit: Canvas
     case "addBlock": {
       if (!blockKinds.has(edit.value)) throw new Error("Unsupported simulation block.");
       const number = next.flow.filter((block) => block.kind === edit.value).length + 1;
-      next.flow.push({ id: `${edit.value}-${number}`, kind: edit.value, enabled: true, position: { x: 480, y: 100 + number * 45 }, ...structuredClone(blockDefaults[edit.value]) });
+      next.flow.push({ id: `${edit.value}-${number}`, kind: edit.value, enabled: true, bindings: [], position: { x: 480, y: 100 + number * 45 }, ...structuredClone(blockDefaults[edit.value]) });
       break;
     }
     case "toggleBlock": {
@@ -157,6 +158,12 @@ export function applyCanvasEdit(definition: TowerDefenseDefinition, edit: Canvas
       block.code = edit.code;
       break;
     }
+    case "toggleBlockBinding": {
+      const block = next.flow.find((candidate) => candidate.id === edit.value);
+      if (!block || !next.schemas.some((schema) => schema.id === edit.schemaId)) throw new Error("Invalid schema binding.");
+      block.bindings = block.bindings.includes(edit.schemaId) ? block.bindings.filter((id) => id !== edit.schemaId) : [...block.bindings, edit.schemaId];
+      break;
+    }
     case "connectBlocks": {
       if (edit.from === edit.to || !next.flow.some((block) => block.id === edit.from) || !next.flow.some((block) => block.id === edit.to)) throw new Error("Invalid graph connection.");
       next.connections = next.connections.filter((connection) => connection.from !== edit.from && connection.to !== edit.to);
@@ -176,6 +183,7 @@ export function applyCanvasEdit(definition: TowerDefenseDefinition, edit: Canvas
     }
     case "removeSchema":
       next.schemas = next.schemas.filter((schema) => schema.id !== edit.value);
+      next.flow.forEach((block) => { block.bindings = block.bindings.filter((binding) => binding !== edit.value); });
       break;
     case "setSchemaName": {
       const schema = next.schemas.find((candidate) => candidate.id === edit.value);

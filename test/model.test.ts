@@ -27,4 +27,14 @@ describe("visual definition edits", () => {
     const updated = applyCanvasEdit(sampleDefinition(), { kind: "addSchema", schemaKind: "component" });
     expect(updated.schemas.at(-1)).toMatchObject({ kind: "component", name: "Component2" });
   });
+
+  it("binds a system to a visual data contract", () => {
+    const updated = applyCanvasEdit(sampleDefinition(), { kind: "toggleBlockBinding", value: "spawn-wave", schemaId: "health" });
+    expect(updated.flow.find((block) => block.id === "spawn-wave")?.bindings).toEqual(expect.arrayContaining(["health", "game-state"]));
+  });
+
+  it("removes stale bindings when a visual contract is removed", () => {
+    const updated = applyCanvasEdit(sampleDefinition(), { kind: "removeSchema", value: "health" });
+    expect(updated.flow.every((block) => !block.bindings.includes("health"))).toBe(true);
+  });
 });

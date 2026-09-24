@@ -21,6 +21,10 @@ export function validateDefinition(definition: TowerDefenseDefinition): Diagnost
     schemas.add(schema.name);
     if (!schema.fields.length) diagnostics.push({ path: `schemas.${schema.id}`, message: "Schemas need at least one field." });
   }
+  const schemaIds = new Set(definition.schemas.map((schema) => schema.id));
+  for (const block of definition.flow) {
+    if (block.bindings.some((binding) => !schemaIds.has(binding))) diagnostics.push({ path: `flow.${block.id}.bindings`, message: "A system binding points to a missing schema." });
+  }
   const seenMessages = new Set<string>();
   for (const message of definition.messages) {
     if (!/^[A-Z][A-Za-z0-9]*$/.test(message.name)) diagnostics.push({ path: `messages.${message.name}`, message: "Message names must be PascalCase." });

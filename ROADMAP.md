@@ -7,7 +7,7 @@ Legend: ✅ shipped and tested · 🟡 scaffolded/partial · ⬜ not built
 ## Core editor and project ownership
 
 - ✅ VS Code extension foundation and public GitHub repository.
-- 🟡 Visual systems canvas: has a project front page, factory inspector, draggable persisted block positions, typed execution wires, block-property editing, and undo/redo. Multi-output control flow, data ports, and reusable subgraphs are still missing.
+- 🟡 Visual systems canvas: has a project front page, factory inspector, draggable persisted block positions, typed execution wires, editable Component/Resource/Event contracts, system-to-contract bindings, block-property editing, and undo/redo. Multi-output control flow and reusable subgraphs are still missing.
 - ✅ Transparent `.forge/tower-defense.json` visual-definition source.
 - ✅ Normal generated Luau, Rojo mapping, Wally manifest, and test skeleton.
 - 🟡 Generated-file ownership rule: named user-code regions in generated Luau survive regeneration; custom attachments, source mapping, and broader safe round-trip editing are not implemented.
@@ -18,7 +18,7 @@ Legend: ✅ shipped and tested · 🟡 scaffolded/partial · ⬜ not built
 ## Architecture and code generation
 
 - ✅ Generated project separates `src/shared/domain` from Roblox adapter destinations.
-- 🟡 Pure simulation boundary: an ordered visual block pipeline now generates typed Luau state-transition functions; deep gameplay behavior is still factory work.
+- 🟡 Pure simulation boundary: an ordered visual block pipeline now generates typed Luau state-transition functions and a typed context from bound visual data contracts; deep gameplay behavior is still factory work.
 - 🟡 Network contract generation produces typed Luau shapes; it does not call Lync yet.
 - 🟡 Tower Defense factory records topology, economy, targeting, and messages.
 - ⬜ Component/entity/archetype/system/query/schedule authoring.

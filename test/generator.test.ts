@@ -9,6 +9,7 @@ describe("Tower Defense generator", () => {
     expect(files.map((file) => file.path)).toEqual(expect.arrayContaining(["wally.toml", "default.project.json", "src/shared/domain/Simulation.luau", "src/shared/schemas/Network.luau"]));
     expect(files.find((file) => file.path === "src/shared/schemas/Network.luau")?.content).toContain("export type PlaceTower");
     expect(files.find((file) => file.path === "src/shared/schemas/GameSchema.luau")?.content).toContain("export type Health");
+    expect(files.find((file) => file.path === "src/shared/domain/Simulation.luau")?.content).toContain("Health: GameSchema.Health?");
   });
   it("rejects invalid message names before generation", () => {
     const definition = sampleDefinition();
@@ -23,13 +24,13 @@ describe("Tower Defense generator", () => {
     definition.connections = [];
     const simulation = generateTowerDefense(definition).find((file) => file.path === "src/shared/domain/Simulation.luau")?.content ?? "";
     expect(simulation).toContain("local function spawnWave");
-    expect(simulation).toContain("state = spawnWave(state)");
+    expect(simulation).toContain("state = spawnWave(state, context)");
     expect(simulation).not.toContain("local function cleanupDead");
   });
 
   it("emits a custom system block as editable Luau in the scheduled graph", () => {
     const definition = sampleDefinition();
-    const custom = { ...definition.flow[0], id: "customSystem-1", kind: "customSystem" as const, label: "Grant Bonus", config: {}, code: "\treturn state" };
+    const custom = { ...definition.flow[0], id: "customSystem-1", kind: "customSystem" as const, label: "Grant Bonus", config: {}, bindings: ["health"], code: "\treturn state" };
     definition.flow = [custom];
     definition.connections = [];
     const simulation = generateTowerDefense(definition).find((file) => file.path === "src/shared/domain/Simulation.luau")?.content ?? "";

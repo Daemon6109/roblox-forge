@@ -6,7 +6,7 @@
 
 The initial extension provides a project front page, Tower Defense systems canvas, and visual simulation block pipeline. It persists a diffable `.forge/tower-defense.json` definition, validates it, then generates:
 
-- pure-domain Luau assembled from the ordered visual blocks and designed to run under Lute;
+- pure-domain Luau assembled from the ordered visual blocks, with typed Component/Resource/Event context contracts, and designed to run under Lute;
 - typed networking contract stubs for Lync;
 - Rojo project mapping;
 - Wally manifest;
