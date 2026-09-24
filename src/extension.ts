@@ -6,7 +6,7 @@ import { ForgeCanvasProvider } from "./canvas";
 import { applyCanvasEdit, hydrateDefinition, sampleDefinition, type CanvasEdit, type TowerDefenseDefinition } from "./model";
 import { validateDefinition } from "./validation";
 import { preserveUserRegions } from "./ownership";
-import { runToolchain } from "./toolchain";
+import { installWallyDependencies, runToolchain } from "./toolchain";
 import { ForgeExplorerProvider } from "./explorer";
 
 const definitionPath = (root: string) => path.join(root, ".forge", "tower-defense.json");
@@ -154,6 +154,19 @@ export function activate(context: vscode.ExtensionContext) {
       else if (unavailable.length) vscode.window.showWarningMessage(`Graph and generation passed. ${unavailable.length} local tool${unavailable.length === 1 ? " is" : "s are"} unavailable; see Build & Test output.`);
       else vscode.window.showInformationMessage("Build & Test passed.");
     } catch (error) { vscode.window.showErrorMessage(`Build & Test failed: ${String(error)}`); }
+  }));
+  context.subscriptions.push(vscode.commands.registerCommand("robloxForge.installDependencies", async () => {
+    const root = await workspaceRoot();
+    if (!root) return vscode.window.showErrorMessage("Open a Forge project first.");
+    const result = await installWallyDependencies(root);
+    toolOutput.clear();
+    toolOutput.appendLine(`${result.status === "passed" ? "✓" : result.status === "unavailable" ? "–" : "✗"} ${result.label}`);
+    toolOutput.appendLine(result.command);
+    if (result.output) toolOutput.appendLine(result.output);
+    toolOutput.show(true);
+    if (result.status === "passed") vscode.window.showInformationMessage("Wally dependencies installed and lockfile updated.");
+    else if (result.status === "unavailable") vscode.window.showWarningMessage("Wally is not installed; see Roblox Forge · Build & Test.");
+    else vscode.window.showErrorMessage("Wally dependency install failed; see Roblox Forge · Build & Test.");
   }));
   context.subscriptions.push(vscode.commands.registerCommand("robloxForge.openGeneratedSimulation", async () => {
     const root = await workspaceRoot();

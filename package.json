@@ -20,6 +20,7 @@
     "onCommand:robloxForge.validate",
     "onCommand:robloxForge.generate",
     "onCommand:robloxForge.buildAndTest"
+    ,"onCommand:robloxForge.installDependencies"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -43,6 +44,10 @@
       {
         "command": "robloxForge.buildAndTest",
         "title": "Roblox Forge: Build & Test"
+      },
+      {
+        "command": "robloxForge.installDependencies",
+        "title": "Roblox Forge: Install Wally Dependencies"
       },
       {
         "command": "robloxForge.openGeneratedSimulation",
