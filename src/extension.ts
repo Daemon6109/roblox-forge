@@ -7,6 +7,7 @@ import { applyCanvasEdit, hydrateDefinition, sampleDefinition, type CanvasEdit, 
 import { validateDefinition } from "./validation";
 import { preserveUserRegions } from "./ownership";
 import { runToolchain } from "./toolchain";
+import { ForgeExplorerProvider } from "./explorer";
 
 const definitionPath = (root: string) => path.join(root, ".forge", "tower-defense.json");
 
@@ -33,18 +34,21 @@ async function writeFiles(root: string, files: ReturnType<typeof generateTowerDe
 
 export function activate(context: vscode.ExtensionContext) {
   const canvas = new ForgeCanvasProvider();
+  const explorer = new ForgeExplorerProvider();
   const toolOutput = vscode.window.createOutputChannel("Roblox Forge · Build & Test");
   const undoStack: TowerDefenseDefinition[] = [];
   const redoStack: TowerDefenseDefinition[] = [];
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(ForgeCanvasProvider.viewType, canvas));
+  context.subscriptions.push(vscode.window.registerTreeDataProvider("robloxForge.explorer", explorer));
   context.subscriptions.push(toolOutput);
   const refreshCanvas = async () => {
     const root = await workspaceRoot();
-    if (!root) return canvas.setState();
+    if (!root) { canvas.setState(); explorer.setProject(undefined, undefined); return; }
     try {
       const definition = await readDefinition(root);
       canvas.setState(definition, validateDefinition(definition));
-    } catch { canvas.setState(); }
+      explorer.setProject(root, definition);
+    } catch { canvas.setState(); explorer.setProject(root, undefined); }
   };
   void refreshCanvas();
   context.subscriptions.push(vscode.commands.registerCommand("robloxForge.newProject", async () => {
@@ -79,6 +83,7 @@ export function activate(context: vscode.ExtensionContext) {
       redoStack.length = 0;
       await saveDefinition(root, next);
       canvas.setState(next, validateDefinition(next));
+      explorer.setProject(root, next);
     } catch (error) { vscode.window.showErrorMessage(`Forge edit failed: ${String(error)}`); }
   }));
   context.subscriptions.push(vscode.commands.registerCommand("robloxForge.undo", async () => {
@@ -89,6 +94,7 @@ export function activate(context: vscode.ExtensionContext) {
     redoStack.push(structuredClone(current));
     await saveDefinition(root, previous);
     canvas.setState(previous, validateDefinition(previous));
+    explorer.setProject(root, previous);
   }));
   context.subscriptions.push(vscode.commands.registerCommand("robloxForge.redo", async () => {
     const root = await workspaceRoot();
@@ -98,6 +104,7 @@ export function activate(context: vscode.ExtensionContext) {
     undoStack.push(structuredClone(current));
     await saveDefinition(root, next);
     canvas.setState(next, validateDefinition(next));
+    explorer.setProject(root, next);
   }));
   context.subscriptions.push(vscode.commands.registerCommand("robloxForge.validate", async () => {
     const root = await workspaceRoot();

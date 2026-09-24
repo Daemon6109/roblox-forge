@@ -61,6 +61,10 @@
     "views": {
       "robloxForge": [
         {
+          "id": "robloxForge.explorer",
+          "name": "Project Explorer"
+        },
+        {
           "type": "webview",
           "id": "robloxForge.canvas",
           "name": "Systems Canvas"

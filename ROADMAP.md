@@ -11,7 +11,7 @@ Legend: ✅ shipped and tested · 🟡 scaffolded/partial · ⬜ not built
 - ✅ Transparent `.forge/tower-defense.json` visual-definition source.
 - ✅ Normal generated Luau, Rojo mapping, Wally manifest, and test skeleton.
 - 🟡 Generated-file ownership rule: named user-code regions in generated Luau survive regeneration; custom attachments, source mapping, and broader safe round-trip editing are not implemented.
-- ⬜ Project explorer for factories, systems, components, assets, schemas, and tests.
+- 🟡 Project Explorer ships factory, system, data-contract, networking, generated-code, and test navigation. Asset indexing and multi-factory project organization remain.
 - 🟡 Inspector/properties editor, graph drag/drop, and session undo/redo are shipped. Auto-layout, durable history/snapshots, breadcrumbs, search, and command palette coverage remain.
 - ⬜ Progressive code escape hatches: expressions/rules, custom Luau attachments, source mapping, and visual-to-code navigation.
 
