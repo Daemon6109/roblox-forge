@@ -32,6 +32,8 @@ async function writeFiles(root: string, files: ReturnType<typeof generateTowerDe
 
 export function activate(context: vscode.ExtensionContext) {
   const canvas = new ForgeCanvasProvider();
+  const undoStack: TowerDefenseDefinition[] = [];
+  const redoStack: TowerDefenseDefinition[] = [];
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(ForgeCanvasProvider.viewType, canvas));
   const refreshCanvas = async () => {
     const root = await workspaceRoot();
@@ -68,10 +70,31 @@ export function activate(context: vscode.ExtensionContext) {
     const root = await workspaceRoot();
     if (!root) return vscode.window.showErrorMessage("Open a folder first.");
     try {
-      const next = applyCanvasEdit(await readDefinition(root), edit);
+      const current = await readDefinition(root);
+      const next = applyCanvasEdit(current, edit);
+      undoStack.push(structuredClone(current));
+      redoStack.length = 0;
       await saveDefinition(root, next);
       canvas.setState(next, validateDefinition(next));
     } catch (error) { vscode.window.showErrorMessage(`Forge edit failed: ${String(error)}`); }
+  }));
+  context.subscriptions.push(vscode.commands.registerCommand("robloxForge.undo", async () => {
+    const root = await workspaceRoot();
+    const previous = undoStack.pop();
+    if (!root || !previous) return;
+    const current = await readDefinition(root);
+    redoStack.push(structuredClone(current));
+    await saveDefinition(root, previous);
+    canvas.setState(previous, validateDefinition(previous));
+  }));
+  context.subscriptions.push(vscode.commands.registerCommand("robloxForge.redo", async () => {
+    const root = await workspaceRoot();
+    const next = redoStack.pop();
+    if (!root || !next) return;
+    const current = await readDefinition(root);
+    undoStack.push(structuredClone(current));
+    await saveDefinition(root, next);
+    canvas.setState(next, validateDefinition(next));
   }));
   context.subscriptions.push(vscode.commands.registerCommand("robloxForge.validate", async () => {
     const root = await workspaceRoot();

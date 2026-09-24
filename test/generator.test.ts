@@ -18,7 +18,8 @@ describe("Tower Defense generator", () => {
 
   it("turns enabled visual blocks into a concrete Luau execution pipeline", () => {
     const definition = sampleDefinition();
-    definition.flow = [{ id: "spawn-wave", kind: "spawnWave", enabled: true }, { id: "cleanup-dead", kind: "cleanupDead", enabled: false }];
+    definition.flow = [{ ...definition.flow[0], enabled: true }, { ...definition.flow[5], enabled: false }];
+    definition.connections = [];
     const simulation = generateTowerDefense(definition).find((file) => file.path === "src/shared/domain/Simulation.luau")?.content ?? "";
     expect(simulation).toContain("local function spawnWave");
     expect(simulation).toContain("state = spawnWave(state)");

@@ -7,12 +7,12 @@ Legend: ✅ shipped and tested · 🟡 scaffolded/partial · ⬜ not built
 ## Core editor and project ownership
 
 - ✅ VS Code extension foundation and public GitHub repository.
-- 🟡 Visual systems canvas: has a project front page, factory inspector, and an ordered block pipeline that persists topology, economy, targeting, network schemas, and simulation blocks. Freeform node layout, wire creation, and deep block properties are still missing.
+- 🟡 Visual systems canvas: has a project front page, factory inspector, draggable persisted block positions, typed execution wires, block-property editing, and undo/redo. Multi-output control flow, data ports, and reusable subgraphs are still missing.
 - ✅ Transparent `.forge/tower-defense.json` visual-definition source.
 - ✅ Normal generated Luau, Rojo mapping, Wally manifest, and test skeleton.
 - 🟡 Generated-file ownership rule: named user-code regions in generated Luau survive regeneration; custom attachments, source mapping, and broader safe round-trip editing are not implemented.
 - ⬜ Project explorer for factories, systems, components, assets, schemas, and tests.
-- ⬜ Inspector/properties editor, graph drag/drop, auto-layout, undo/redo/history, snapshots, breadcrumbs, search, and command palette coverage.
+- 🟡 Inspector/properties editor, graph drag/drop, and session undo/redo are shipped. Auto-layout, durable history/snapshots, breadcrumbs, search, and command palette coverage remain.
 - ⬜ Progressive code escape hatches: expressions/rules, custom Luau attachments, source mapping, and visual-to-code navigation.
 
 ## Architecture and code generation

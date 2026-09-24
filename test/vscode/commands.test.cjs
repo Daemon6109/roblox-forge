@@ -29,6 +29,10 @@ suite("Roblox Forge extension host", () => {
     assert.equal(editedDefinition.topology, "lanes");
     assert.equal(editedDefinition.messages[1].name, "AbilityActivated");
     assert.equal(editedDefinition.flow.length, 7);
+    await vscode.commands.executeCommand("robloxForge.undo");
+    assert.equal(JSON.parse(await fs.readFile(definitionPath, "utf8")).flow.length, 6);
+    await vscode.commands.executeCommand("robloxForge.redo");
+    assert.equal(JSON.parse(await fs.readFile(definitionPath, "utf8")).flow.length, 7);
 
     await vscode.commands.executeCommand("robloxForge.validate");
     await vscode.commands.executeCommand("robloxForge.generate");
