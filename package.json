@@ -3,7 +3,11 @@
   "displayName": "Roblox Forge",
   "description": "Local-first visual systems editor and project generator for Roblox/Luau.",
   "version": "0.1.0",
+  "publisher": "daemon6109",
   "private": true,
+  "repository": { "type": "git", "url": "https://github.com/Daemon6109/roblox-forge.git" },
+  "bugs": { "url": "https://github.com/Daemon6109/roblox-forge/issues" },
+  "files": ["dist", "media", "README.md", "ROADMAP.md"],
   "engines": {
     "vscode": "^1.95.0"
   },
@@ -63,6 +67,7 @@
     "@types/vscode": "^1.95.0",
     "@vscode/test-cli": "^0.0.15",
     "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.24.0",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
