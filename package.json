@@ -4,28 +4,65 @@
   "description": "Local-first visual systems editor and project generator for Roblox/Luau.",
   "version": "0.1.0",
   "private": true,
-  "engines": { "vscode": "^1.95.0" },
-  "categories": ["Other"],
-  "activationEvents": ["onCommand:robloxForge.newTowerDefenseProject", "onCommand:robloxForge.validate", "onCommand:robloxForge.generate"],
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:robloxForge.newTowerDefenseProject",
+    "onCommand:robloxForge.validate",
+    "onCommand:robloxForge.generate"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
-      { "command": "robloxForge.newTowerDefenseProject", "title": "Roblox Forge: Create Tower Defense Definition" },
-      { "command": "robloxForge.validate", "title": "Roblox Forge: Validate Definition" },
-      { "command": "robloxForge.generate", "title": "Roblox Forge: Generate Luau Project" }
+      {
+        "command": "robloxForge.newTowerDefenseProject",
+        "title": "Roblox Forge: Create Tower Defense Definition"
+      },
+      {
+        "command": "robloxForge.validate",
+        "title": "Roblox Forge: Validate Definition"
+      },
+      {
+        "command": "robloxForge.generate",
+        "title": "Roblox Forge: Generate Luau Project"
+      }
     ],
-    "viewsContainers": { "activitybar": [{ "id": "robloxForge", "title": "Roblox Forge", "icon": "media/forge.svg" }] },
-    "views": { "robloxForge": [{ "type": "webview", "id": "robloxForge.canvas", "name": "Systems Canvas" }] }
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "robloxForge",
+          "title": "Roblox Forge",
+          "icon": "media/forge.svg"
+        }
+      ]
+    },
+    "views": {
+      "robloxForge": [
+        {
+          "type": "webview",
+          "id": "robloxForge.canvas",
+          "name": "Systems Canvas"
+        }
+      ]
+    }
   },
   "scripts": {
     "build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=dist/extension.js",
     "check": "tsc --noEmit",
-    "test": "vitest run",
-    "package": "npm run check && npm run test && npm run build"
+    "test": "npm run test:unit",
+    "test:unit": "vitest run test/generator.test.ts",
+    "test:vscode": "npm run build && vscode-test",
+    "package": "npm run check && npm run test:unit && npm run build"
   },
   "devDependencies": {
     "@types/node": "^22.10.1",
     "@types/vscode": "^1.95.0",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.1.0",
     "esbuild": "^0.24.0",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
