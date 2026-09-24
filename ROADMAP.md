@@ -10,7 +10,7 @@ Legend: ✅ shipped and tested · 🟡 scaffolded/partial · ⬜ not built
 - 🟡 Visual systems canvas: renders the Tower Defense factory/data/system/network/output topology and persistently edits topology, economy, targeting, and network schemas. Freeform node layout and deep inspector editing are still missing.
 - ✅ Transparent `.forge/tower-defense.json` visual-definition source.
 - ✅ Normal generated Luau, Rojo mapping, Wally manifest, and test skeleton.
-- 🟡 Generated-file ownership rule: generated files are marked as generated, but user extension regions and safe round-trip editing are not implemented.
+- 🟡 Generated-file ownership rule: named user-code regions in generated Luau survive regeneration; custom attachments, source mapping, and broader safe round-trip editing are not implemented.
 - ⬜ Project explorer for factories, systems, components, assets, schemas, and tests.
 - ⬜ Inspector/properties editor, graph drag/drop, auto-layout, undo/redo/history, snapshots, breadcrumbs, search, and command palette coverage.
 - ⬜ Progressive code escape hatches: expressions/rules, custom Luau attachments, source mapping, and visual-to-code navigation.

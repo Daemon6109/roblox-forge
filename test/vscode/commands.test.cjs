@@ -31,12 +31,18 @@ suite("Roblox Forge extension host", () => {
     await vscode.commands.executeCommand("robloxForge.validate");
     await vscode.commands.executeCommand("robloxForge.generate");
 
+    const simulationPath = path.join(root(), "src/shared/domain/Simulation.luau");
+    const simulationWithUserCode = (await fs.readFile(simulationPath, "utf8")).replace("-- Add pure domain helpers here. This region survives regeneration.", "local userDamageMultiplier = 2");
+    await fs.writeFile(simulationPath, simulationWithUserCode, "utf8");
+    await vscode.commands.executeCommand("robloxForge.generate");
+
     const [simulation, network, project] = await Promise.all([
-      fs.readFile(path.join(root(), "src/shared/domain/Simulation.luau"), "utf8"),
+      fs.readFile(simulationPath, "utf8"),
       fs.readFile(path.join(root(), "src/shared/schemas/Network.luau"), "utf8"),
       fs.readFile(path.join(root(), "default.project.json"), "utf8")
     ]);
     assert.match(simulation, /Pure domain boundary/);
+    assert.match(simulation, /local userDamageMultiplier = 2/);
     assert.match(network, /export type PlaceTower/);
     assert.match(network, /export type AbilityActivated/);
     assert.match(await fs.readFile(path.join(root(), "src/shared/domain/TowerDefenseConfig.luau"), "utf8"), /topology = "lanes"/);

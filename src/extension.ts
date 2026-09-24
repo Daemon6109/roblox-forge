@@ -5,6 +5,7 @@ import { generateTowerDefense } from "./generator";
 import { ForgeCanvasProvider } from "./canvas";
 import { applyCanvasEdit, sampleDefinition, type CanvasEdit, type TowerDefenseDefinition } from "./model";
 import { validateDefinition } from "./validation";
+import { preserveUserRegions } from "./ownership";
 
 const definitionPath = (root: string) => path.join(root, ".forge", "tower-defense.json");
 
@@ -22,7 +23,10 @@ async function writeFiles(root: string, files: ReturnType<typeof generateTowerDe
   await Promise.all(files.map(async (file) => {
     const destination = path.join(root, file.path);
     await fs.mkdir(path.dirname(destination), { recursive: true });
-    await fs.writeFile(destination, file.content, "utf8");
+    let existing: string | undefined;
+    try { existing = await fs.readFile(destination, "utf8"); } catch { /* first generation */ }
+    const content = file.path.endsWith(".luau") ? preserveUserRegions(file.content, existing) : file.content;
+    await fs.writeFile(destination, content, "utf8");
   }));
 }
 
