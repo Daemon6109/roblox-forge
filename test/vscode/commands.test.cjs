@@ -22,6 +22,12 @@ suite("Roblox Forge extension host", () => {
     assert.equal(definition.kind, "tower-defense");
     assert.equal(definition.messages[0].name, "PlaceTower");
 
+    await vscode.commands.executeCommand("robloxForge.applyEdit", { kind: "setTopology", value: "lanes" });
+    await vscode.commands.executeCommand("robloxForge.applyEdit", { kind: "addMessage" });
+    const editedDefinition = JSON.parse(await fs.readFile(definitionPath, "utf8"));
+    assert.equal(editedDefinition.topology, "lanes");
+    assert.equal(editedDefinition.messages[1].name, "AbilityActivated");
+
     await vscode.commands.executeCommand("robloxForge.validate");
     await vscode.commands.executeCommand("robloxForge.generate");
 
@@ -32,6 +38,8 @@ suite("Roblox Forge extension host", () => {
     ]);
     assert.match(simulation, /Pure domain boundary/);
     assert.match(network, /export type PlaceTower/);
+    assert.match(network, /export type AbilityActivated/);
+    assert.match(await fs.readFile(path.join(root(), "src/shared/domain/TowerDefenseConfig.luau"), "utf8"), /topology = "lanes"/);
     assert.equal(JSON.parse(project).tree.ReplicatedStorage.Shared.$path, "src/shared");
   });
 });

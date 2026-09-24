@@ -1,0 +1,18 @@
+import { describe, expect, it } from "vitest";
+import { applyCanvasEdit, sampleDefinition } from "../src/model";
+
+describe("visual definition edits", () => {
+  it("persists only supported topology and targeting changes", () => {
+    const lanes = applyCanvasEdit(sampleDefinition(), { kind: "setTopology", value: "lanes" });
+    const updated = applyCanvasEdit(lanes, { kind: "toggleTargeting", value: "last" });
+    expect(updated.topology).toBe("lanes");
+    expect(updated.targeting).toContain("last");
+  });
+
+  it("adds a unique network schema without mutating the source", () => {
+    const source = sampleDefinition();
+    const updated = applyCanvasEdit(source, { kind: "addMessage" });
+    expect(source.messages).toHaveLength(1);
+    expect(updated.messages.map((message) => message.name)).toEqual(["PlaceTower", "AbilityActivated"]);
+  });
+});

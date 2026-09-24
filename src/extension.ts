@@ -3,7 +3,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { generateTowerDefense } from "./generator";
 import { ForgeCanvasProvider } from "./canvas";
-import { sampleDefinition, type TowerDefenseDefinition } from "./model";
+import { applyCanvasEdit, sampleDefinition, type CanvasEdit, type TowerDefenseDefinition } from "./model";
 import { validateDefinition } from "./validation";
 
 const definitionPath = (root: string) => path.join(root, ".forge", "tower-defense.json");
@@ -13,6 +13,10 @@ async function workspaceRoot(): Promise<string | undefined> {
 }
 async function readDefinition(root: string): Promise<TowerDefenseDefinition> {
   return JSON.parse(await fs.readFile(definitionPath(root), "utf8")) as TowerDefenseDefinition;
+}
+async function saveDefinition(root: string, definition: TowerDefenseDefinition) {
+  await fs.mkdir(path.dirname(definitionPath(root)), { recursive: true });
+  await fs.writeFile(definitionPath(root), JSON.stringify(definition, null, 2) + "\n", "utf8");
 }
 async function writeFiles(root: string, files: ReturnType<typeof generateTowerDefense>) {
   await Promise.all(files.map(async (file) => {
@@ -37,11 +41,19 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.commands.registerCommand("robloxForge.newTowerDefenseProject", async () => {
     const root = await workspaceRoot();
     if (!root) return vscode.window.showErrorMessage("Open a folder before creating a Forge definition.");
-    await fs.mkdir(path.dirname(definitionPath(root)), { recursive: true });
-    await fs.writeFile(definitionPath(root), JSON.stringify(sampleDefinition(), null, 2) + "\n", "utf8");
+    await saveDefinition(root, sampleDefinition());
     await refreshCanvas();
     await vscode.window.showTextDocument(vscode.Uri.file(definitionPath(root)));
     vscode.window.showInformationMessage("Tower Defense definition created. Run Generate Luau Project when ready.");
+  }));
+  context.subscriptions.push(vscode.commands.registerCommand("robloxForge.applyEdit", async (edit: CanvasEdit) => {
+    const root = await workspaceRoot();
+    if (!root) return vscode.window.showErrorMessage("Open a folder first.");
+    try {
+      const next = applyCanvasEdit(await readDefinition(root), edit);
+      await saveDefinition(root, next);
+      canvas.setState(next, validateDefinition(next));
+    } catch (error) { vscode.window.showErrorMessage(`Forge edit failed: ${String(error)}`); }
   }));
   context.subscriptions.push(vscode.commands.registerCommand("robloxForge.validate", async () => {
     const root = await workspaceRoot();

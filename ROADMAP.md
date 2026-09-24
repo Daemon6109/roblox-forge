@@ -7,7 +7,7 @@ Legend: ✅ shipped and tested · 🟡 scaffolded/partial · ⬜ not built
 ## Core editor and project ownership
 
 - ✅ VS Code extension foundation and public GitHub repository.
-- 🟡 Visual systems canvas: renders the Tower Defense factory/data/system/network/output topology; it is not yet an editable node graph.
+- 🟡 Visual systems canvas: renders the Tower Defense factory/data/system/network/output topology and persistently edits topology, economy, targeting, and network schemas. Freeform node layout and deep inspector editing are still missing.
 - ✅ Transparent `.forge/tower-defense.json` visual-definition source.
 - ✅ Normal generated Luau, Rojo mapping, Wally manifest, and test skeleton.
 - 🟡 Generated-file ownership rule: generated files are marked as generated, but user extension regions and safe round-trip editing are not implemented.
