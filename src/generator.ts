@@ -36,8 +36,9 @@ export function generateTowerDefense(definition: TowerDefenseDefinition): Genera
     if (block.kind === "customSystem") return `local function ${functionName(block.id)}(state: State, context: Context): State\n\t-- Custom System block (${block.id}); binds ${contract}. Edit this from the Forge graph inspector.\n-- <forge:user-code id="${block.id}">\n${block.code?.trim() || "\treturn state"}\n-- </forge:user-code>\nend`;
     if (block.kind === "mutateState") {
       const mutation = block.stateMutation ?? { field: "currency", operation: "add", amount: 10 };
-      const value = mutation.operation === "add" ? `state.${mutation.field} + ${mutation.amount}` : String(mutation.amount);
-      return `local function ${functionName(block.id)}(state: State, context: Context): State\n\t-- Visual state mutation: ${mutation.operation} ${mutation.amount} to ${mutation.field}; binds ${contract}.\n\treturn { wave = ${mutation.field === "wave" ? value : "state.wave"}, currency = ${mutation.field === "currency" ? value : "state.currency"}, lives = ${mutation.field === "lives" ? value : "state.lives"}, tick = state.tick + 1, lastSystem = ${quote(block.label)}, lastValue = ${mutation.amount} }\nend`;
+      const operand = mutation.operand?.source === "state" ? `state.${mutation.operand.field}` : String(mutation.operand?.source === "literal" ? mutation.operand.amount : mutation.amount);
+      const value = mutation.operation === "add" ? `state.${mutation.field} + ${operand}` : operand;
+      return `local function ${functionName(block.id)}(state: State, context: Context): State\n\t-- Visual state mutation: ${mutation.operation} ${operand} to ${mutation.field}; binds ${contract}.\n\treturn { wave = ${mutation.field === "wave" ? value : "state.wave"}, currency = ${mutation.field === "currency" ? value : "state.currency"}, lives = ${mutation.field === "lives" ? value : "state.lives"}, tick = state.tick + 1, lastSystem = ${quote(block.label)}, lastValue = ${mutation.amount} }\nend`;
     }
     if (block.kind === "condition") {
       const condition = block.stateCondition ?? { field: "lives", comparison: ">", amount: 0 };

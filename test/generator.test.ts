@@ -47,6 +47,14 @@ describe("Tower Defense generator", () => {
     expect(simulation).toContain("Visual state mutation: add 50 to currency");
   });
 
+  it("uses a state value as a visual arithmetic operand", () => {
+    const definition = sampleDefinition();
+    definition.flow = [{ ...definition.flow[0], id: "convert-wave", kind: "mutateState", label: "Convert wave", config: {}, bindings: [], stateMutation: { field: "currency", operation: "add", amount: 0, operand: { source: "state", field: "wave" } } }];
+    definition.connections = [];
+    const simulation = generateTowerDefense(definition).find((file) => file.path === "src/shared/domain/Simulation.luau")?.content ?? "";
+    expect(simulation).toContain("state.currency + state.wave");
+  });
+
   it("generates separate true and false control flow for a condition", () => {
     const definition = sampleDefinition();
     const condition = { ...definition.flow[0], id: "still-alive", kind: "condition" as const, label: "Still alive", config: {}, bindings: [], stateCondition: { field: "lives" as const, comparison: ">" as const, amount: 0 } };

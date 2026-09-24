@@ -13,7 +13,8 @@ export type GraphPosition = { x: number; y: number };
 export type FlowPort = "next" | "true" | "false";
 export type FlowConnection = { from: string; to: string; fromPort?: FlowPort };
 export type StateField = "wave" | "currency" | "lives";
-export type StateMutation = { field: StateField; operation: "add" | "set"; amount: number };
+export type StateOperand = { source: "literal"; amount: number } | { source: "state"; field: StateField };
+export type StateMutation = { field: StateField; operation: "add" | "set"; amount: number; operand?: StateOperand };
 export type StateCondition = { field: StateField; comparison: ">=" | ">" | "<=" | "<" | "=="; amount: number };
 export type SimulationBlock = { id: string; kind: SimulationBlockKind; enabled: boolean; label: string; position: GraphPosition; config: Record<string, number>; bindings: string[]; stateMutation?: StateMutation; stateCondition?: StateCondition; code?: string };
 
@@ -87,7 +88,7 @@ const defaultFlow = (): SimulationBlock[] => [
 ];
 
 export function hydrateDefinition(value: Omit<TowerDefenseDefinition, "flow" | "connections" | "schemas"> & Partial<Pick<TowerDefenseDefinition, "flow" | "connections" | "schemas">>): TowerDefenseDefinition {
-  const flow = value.flow?.length ? value.flow.map((block, index) => ({ ...structuredClone(blockDefaults[block.kind]), ...block, bindings: block.bindings ?? [], stateMutation: block.kind === "mutateState" ? block.stateMutation ?? { field: "currency", operation: "add", amount: 10 } : block.stateMutation, stateCondition: block.kind === "condition" ? block.stateCondition ?? { field: "lives", comparison: ">", amount: 0 } : block.stateCondition, position: block.position ?? { x: 260, y: 60 + index * 130 }, config: { ...blockDefaults[block.kind].config, ...block.config } })) : defaultFlow();
+  const flow = value.flow?.length ? value.flow.map((block, index) => ({ ...structuredClone(blockDefaults[block.kind]), ...block, bindings: block.bindings ?? [], stateMutation: block.kind === "mutateState" ? { field: "currency" as StateField, operation: "add" as const, amount: 10, ...block.stateMutation, operand: block.stateMutation?.operand ?? { source: "literal" as const, amount: block.stateMutation?.amount ?? 10 } } : block.stateMutation, stateCondition: block.kind === "condition" ? block.stateCondition ?? { field: "lives", comparison: ">", amount: 0 } : block.stateCondition, position: block.position ?? { x: 260, y: 60 + index * 130 }, config: { ...blockDefaults[block.kind].config, ...block.config } })) : defaultFlow();
   const connections = value.connections ?? flow.slice(1).map((block, index) => ({ from: flow[index].id, to: block.id }));
   return { ...value, flow, connections, schemas: value.schemas ?? defaultSchemas() };
 }
@@ -127,7 +128,7 @@ export function applyCanvasEdit(definition: TowerDefenseDefinition, edit: Canvas
     case "addBlock": {
       if (!blockKinds.has(edit.value)) throw new Error("Unsupported simulation block.");
       const number = next.flow.filter((block) => block.kind === edit.value).length + 1;
-      next.flow.push({ id: `${edit.value}-${number}`, kind: edit.value, enabled: true, bindings: [], stateMutation: edit.value === "mutateState" ? { field: "currency", operation: "add", amount: 10 } : undefined, stateCondition: edit.value === "condition" ? { field: "lives", comparison: ">", amount: 0 } : undefined, position: { x: 480, y: 100 + number * 45 }, ...structuredClone(blockDefaults[edit.value]) });
+      next.flow.push({ id: `${edit.value}-${number}`, kind: edit.value, enabled: true, bindings: [], stateMutation: edit.value === "mutateState" ? { field: "currency", operation: "add", amount: 10, operand: { source: "literal", amount: 10 } } : undefined, stateCondition: edit.value === "condition" ? { field: "lives", comparison: ">", amount: 0 } : undefined, position: { x: 480, y: 100 + number * 45 }, ...structuredClone(blockDefaults[edit.value]) });
       break;
     }
     case "toggleBlock": {
@@ -167,8 +168,9 @@ export function applyCanvasEdit(definition: TowerDefenseDefinition, edit: Canvas
     }
     case "setStateMutation": {
       const block = next.flow.find((candidate) => candidate.id === edit.value);
-      if (!block || block.kind !== "mutateState" || !stateFields.has(edit.mutation.field) || !["add", "set"].includes(edit.mutation.operation) || !Number.isFinite(edit.mutation.amount)) throw new Error("Invalid state mutation.");
-      block.stateMutation = { ...edit.mutation };
+      const operand = edit.mutation.operand ?? { source: "literal", amount: edit.mutation.amount };
+      if (!block || block.kind !== "mutateState" || !stateFields.has(edit.mutation.field) || !["add", "set"].includes(edit.mutation.operation) || !Number.isFinite(edit.mutation.amount) || (operand.source === "literal" && !Number.isFinite(operand.amount)) || (operand.source === "state" && !stateFields.has(operand.field))) throw new Error("Invalid state mutation.");
+      block.stateMutation = { ...edit.mutation, operand };
       break;
     }
     case "setStateCondition": {

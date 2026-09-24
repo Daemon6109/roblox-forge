@@ -48,7 +48,7 @@ describe("visual definition edits", () => {
     const withBlock = applyCanvasEdit(sampleDefinition(), { kind: "addBlock", value: "mutateState" });
     const block = withBlock.flow.at(-1)!;
     const updated = applyCanvasEdit(withBlock, { kind: "setStateMutation", value: block.id, mutation: { field: "currency", operation: "add", amount: 50 } });
-    expect(updated.flow.at(-1)?.stateMutation).toEqual({ field: "currency", operation: "add", amount: 50 });
+    expect(updated.flow.at(-1)?.stateMutation).toMatchObject({ field: "currency", operation: "add", amount: 50 });
   });
 
   it("creates a visual state condition with separate true and false ports", () => {
