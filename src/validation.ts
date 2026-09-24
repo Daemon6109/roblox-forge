@@ -6,6 +6,12 @@ export function validateDefinition(definition: TowerDefenseDefinition): Diagnost
   const diagnostics: Diagnostic[] = [];
   if (!definition.name.trim()) diagnostics.push({ path: "name", message: "Project name is required." });
   if (!definition.targeting.length) diagnostics.push({ path: "targeting", message: "Choose at least one targeting mode." });
+  if (!definition.flow.length) diagnostics.push({ path: "flow", message: "Add at least one simulation block." });
+  const blockIds = new Set<string>();
+  for (const block of definition.flow) {
+    if (blockIds.has(block.id)) diagnostics.push({ path: `flow.${block.id}`, message: "Simulation block IDs must be unique." });
+    blockIds.add(block.id);
+  }
   const seenMessages = new Set<string>();
   for (const message of definition.messages) {
     if (!/^[A-Z][A-Za-z0-9]*$/.test(message.name)) diagnostics.push({ path: `messages.${message.name}`, message: "Message names must be PascalCase." });

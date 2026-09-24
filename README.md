@@ -4,9 +4,9 @@
 
 ## First vertical slice
 
-The initial extension provides a systems canvas plus commands to create a diffable `.forge/tower-defense.json` definition, validate it, then generate:
+The initial extension provides a project front page, Tower Defense systems canvas, and visual simulation block pipeline. It persists a diffable `.forge/tower-defense.json` definition, validates it, then generates:
 
-- pure-domain Luau designed to run under Lute;
+- pure-domain Luau assembled from the ordered visual blocks and designed to run under Lute;
 - typed networking contract stubs for Lync;
 - Rojo project mapping;
 - Wally manifest;
@@ -23,10 +23,10 @@ npm run package
 
 Open the folder in VS Code, press `F5`, then use the command palette:
 
-1. Open the **Roblox Forge** activity-bar icon to see the architecture canvas.
-2. `Roblox Forge: Create Tower Defense Definition`
-2. `Roblox Forge: Validate Definition`
-3. `Roblox Forge: Generate Luau Project`
+1. Open the **Roblox Forge** activity-bar icon.
+2. Choose **Create a project** to create a generated project from a folder picker, or use `Roblox Forge: Create Tower Defense Definition` in an existing folder.
+3. Add, reorder, enable, or disable simulation blocks; edit the factory inspector.
+4. `Roblox Forge: Validate Definition` → `Roblox Forge: Generate Luau Project`.
 
 ## Design boundaries
 

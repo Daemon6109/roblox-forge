@@ -24,9 +24,11 @@ suite("Roblox Forge extension host", () => {
 
     await vscode.commands.executeCommand("robloxForge.applyEdit", { kind: "setTopology", value: "lanes" });
     await vscode.commands.executeCommand("robloxForge.applyEdit", { kind: "addMessage" });
+    await vscode.commands.executeCommand("robloxForge.applyEdit", { kind: "addBlock", value: "spawnWave" });
     const editedDefinition = JSON.parse(await fs.readFile(definitionPath, "utf8"));
     assert.equal(editedDefinition.topology, "lanes");
     assert.equal(editedDefinition.messages[1].name, "AbilityActivated");
+    assert.equal(editedDefinition.flow.length, 7);
 
     await vscode.commands.executeCommand("robloxForge.validate");
     await vscode.commands.executeCommand("robloxForge.generate");
@@ -42,6 +44,7 @@ suite("Roblox Forge extension host", () => {
       fs.readFile(path.join(root(), "default.project.json"), "utf8")
     ]);
     assert.match(simulation, /Pure domain boundary/);
+    assert.match(simulation, /local function spawnWave2/);
     assert.match(simulation, /local userDamageMultiplier = 2/);
     assert.match(network, /export type PlaceTower/);
     assert.match(network, /export type AbilityActivated/);

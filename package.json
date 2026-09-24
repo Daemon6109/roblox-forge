@@ -16,6 +16,7 @@
   ],
   "activationEvents": [
     "onCommand:robloxForge.newTowerDefenseProject",
+    "onCommand:robloxForge.newProject",
     "onCommand:robloxForge.validate",
     "onCommand:robloxForge.generate"
   ],
@@ -27,12 +28,20 @@
         "title": "Roblox Forge: Create Tower Defense Definition"
       },
       {
+        "command": "robloxForge.newProject",
+        "title": "Roblox Forge: Create Project…"
+      },
+      {
         "command": "robloxForge.validate",
         "title": "Roblox Forge: Validate Definition"
       },
       {
         "command": "robloxForge.generate",
         "title": "Roblox Forge: Generate Luau Project"
+      },
+      {
+        "command": "robloxForge.openGeneratedSimulation",
+        "title": "Roblox Forge: Open Generated Simulation"
       }
     ],
     "viewsContainers": {

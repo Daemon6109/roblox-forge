@@ -15,4 +15,13 @@ describe("Tower Defense generator", () => {
     expect(validateDefinition(definition)).toHaveLength(1);
     expect(() => generateTowerDefense(definition)).toThrow("PascalCase");
   });
+
+  it("turns enabled visual blocks into a concrete Luau execution pipeline", () => {
+    const definition = sampleDefinition();
+    definition.flow = [{ id: "spawn-wave", kind: "spawnWave", enabled: true }, { id: "cleanup-dead", kind: "cleanupDead", enabled: false }];
+    const simulation = generateTowerDefense(definition).find((file) => file.path === "src/shared/domain/Simulation.luau")?.content ?? "";
+    expect(simulation).toContain("local function spawnWave");
+    expect(simulation).toContain("state = spawnWave(state)");
+    expect(simulation).not.toContain("local function cleanupDead");
+  });
 });

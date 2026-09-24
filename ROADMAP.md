@@ -7,7 +7,7 @@ Legend: ✅ shipped and tested · 🟡 scaffolded/partial · ⬜ not built
 ## Core editor and project ownership
 
 - ✅ VS Code extension foundation and public GitHub repository.
-- 🟡 Visual systems canvas: renders the Tower Defense factory/data/system/network/output topology and persistently edits topology, economy, targeting, and network schemas. Freeform node layout and deep inspector editing are still missing.
+- 🟡 Visual systems canvas: has a project front page, factory inspector, and an ordered block pipeline that persists topology, economy, targeting, network schemas, and simulation blocks. Freeform node layout, wire creation, and deep block properties are still missing.
 - ✅ Transparent `.forge/tower-defense.json` visual-definition source.
 - ✅ Normal generated Luau, Rojo mapping, Wally manifest, and test skeleton.
 - 🟡 Generated-file ownership rule: named user-code regions in generated Luau survive regeneration; custom attachments, source mapping, and broader safe round-trip editing are not implemented.
@@ -18,7 +18,7 @@ Legend: ✅ shipped and tested · 🟡 scaffolded/partial · ⬜ not built
 ## Architecture and code generation
 
 - ✅ Generated project separates `src/shared/domain` from Roblox adapter destinations.
-- ✅ Initial pure simulation boundary and domain test skeleton.
+- 🟡 Pure simulation boundary: an ordered visual block pipeline now generates typed Luau state-transition functions; deep gameplay behavior is still factory work.
 - 🟡 Network contract generation produces typed Luau shapes; it does not call Lync yet.
 - 🟡 Tower Defense factory records topology, economy, targeting, and messages.
 - ⬜ Component/entity/archetype/system/query/schedule authoring.
@@ -41,7 +41,7 @@ Legend: ✅ shipped and tested · 🟡 scaffolded/partial · ⬜ not built
 - ⬜ JECS integration and visual ECS authoring (components, relationships, queries, schedules).
 - ⬜ Lync integration: actual typed remotes, serialization, reliability configuration, and visible request/validation/simulation/replication pipelines.
 - ⬜ Lyra integration: player data schemas, defaults, validation, migrations, generated fixtures, load/unload wiring, and migration tests.
-- 🟡 Tower Defense factory: initial definition/generation only.
+- 🟡 Tower Defense factory: project wizard, definition/generation, and configurable simulation block pipeline.
 - ⬜ Tower Defense deep factory: enemies, towers, projectiles, path progress, waves, placement, upgrades, effects, replication, authored/procedural waves, and 100-wave simulation.
 - ⬜ Grid tactics factory: square/hex grids, turn order, movement, terrain, combat, effects, objectives, AI, replayable deterministic simulations.
 - ⬜ Lower-level factories: inventory, equipment, abilities, cooldowns, status effects, combat, NPC AI, quests, economy, shops, crafting, rounds, matchmaking, progression, achievements, save data, replication, and test factories.

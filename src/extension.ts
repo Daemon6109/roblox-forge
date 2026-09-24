@@ -3,7 +3,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { generateTowerDefense } from "./generator";
 import { ForgeCanvasProvider } from "./canvas";
-import { applyCanvasEdit, sampleDefinition, type CanvasEdit, type TowerDefenseDefinition } from "./model";
+import { applyCanvasEdit, hydrateDefinition, sampleDefinition, type CanvasEdit, type TowerDefenseDefinition } from "./model";
 import { validateDefinition } from "./validation";
 import { preserveUserRegions } from "./ownership";
 
@@ -13,7 +13,7 @@ async function workspaceRoot(): Promise<string | undefined> {
   return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 }
 async function readDefinition(root: string): Promise<TowerDefenseDefinition> {
-  return JSON.parse(await fs.readFile(definitionPath(root), "utf8")) as TowerDefenseDefinition;
+  return hydrateDefinition(JSON.parse(await fs.readFile(definitionPath(root), "utf8")) as TowerDefenseDefinition);
 }
 async function saveDefinition(root: string, definition: TowerDefenseDefinition) {
   await fs.mkdir(path.dirname(definitionPath(root)), { recursive: true });
@@ -42,6 +42,20 @@ export function activate(context: vscode.ExtensionContext) {
     } catch { canvas.setState(); }
   };
   void refreshCanvas();
+  context.subscriptions.push(vscode.commands.registerCommand("robloxForge.newProject", async () => {
+    const parent = await vscode.window.showOpenDialog({ canSelectFiles: false, canSelectFolders: true, canSelectMany: false, openLabel: "Choose project location" });
+    if (!parent?.[0]) return;
+    const name = await vscode.window.showInputBox({ prompt: "Project name", placeHolder: "My Tower Defense", validateInput: (value) => value.trim() ? undefined : "A project name is required." });
+    if (!name) return;
+    const destination = path.join(parent[0].fsPath, name.replace(/[\\/:*?"<>|]/g, "-").trim());
+    try {
+      const definition = { ...sampleDefinition(), name };
+      await fs.mkdir(destination, { recursive: false });
+      await saveDefinition(destination, definition);
+      await writeFiles(destination, generateTowerDefense(definition));
+      await vscode.commands.executeCommand("vscode.openFolder", vscode.Uri.file(destination), true);
+    } catch (error) { vscode.window.showErrorMessage(`Could not create Forge project: ${String(error)}`); }
+  }));
   context.subscriptions.push(vscode.commands.registerCommand("robloxForge.newTowerDefenseProject", async () => {
     const root = await workspaceRoot();
     if (!root) return vscode.window.showErrorMessage("Open a folder before creating a Forge definition.");
@@ -77,6 +91,12 @@ export function activate(context: vscode.ExtensionContext) {
       await refreshCanvas();
       vscode.window.showInformationMessage("Generated Luau domain, network schemas, Rojo project, Wally manifest, and domain test.");
     } catch (error) { vscode.window.showErrorMessage(`Forge generation failed: ${String(error)}`); }
+  }));
+  context.subscriptions.push(vscode.commands.registerCommand("robloxForge.openGeneratedSimulation", async () => {
+    const root = await workspaceRoot();
+    if (!root) return vscode.window.showErrorMessage("Open a Forge project first.");
+    try { await vscode.window.showTextDocument(vscode.Uri.file(path.join(root, "src/shared/domain/Simulation.luau"))); }
+    catch { vscode.window.showErrorMessage("Generate the project before opening its simulation."); }
   }));
 }
 
