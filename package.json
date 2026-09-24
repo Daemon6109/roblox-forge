@@ -2,7 +2,7 @@
   "name": "roblox-forge",
   "displayName": "Roblox Forge",
   "description": "Local-first visual systems editor and project generator for Roblox/Luau.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "daemon6109",
   "private": true,
   "repository": { "type": "git", "url": "https://github.com/Daemon6109/roblox-forge.git" },
