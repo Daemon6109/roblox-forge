@@ -36,6 +36,7 @@ suite("Roblox Forge extension host", () => {
 
     await vscode.commands.executeCommand("robloxForge.validate");
     await vscode.commands.executeCommand("robloxForge.generate");
+    await vscode.commands.executeCommand("robloxForge.buildAndTest");
 
     const simulationPath = path.join(root(), "src/shared/domain/Simulation.luau");
     const simulationWithUserCode = (await fs.readFile(simulationPath, "utf8")).replace("-- Add pure domain helpers here. This region survives regeneration.", "local userDamageMultiplier = 2");

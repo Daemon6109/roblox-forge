@@ -26,6 +26,7 @@ Open the folder in VS Code, press `F5`, then use the command palette:
 1. Open the **Roblox Forge** activity-bar icon.
 2. Choose **Create a project** to create a generated project from a folder picker, or use `Roblox Forge: Create Tower Defense Definition` in an existing folder.
 3. Add, reorder, enable, or disable simulation blocks; edit the factory inspector.
+4. Use **Build & Test** to regenerate, then run available StyLua, Selene, and Lute checks. Missing local tools are reported explicitly.
 4. `Roblox Forge: Validate Definition` → `Roblox Forge: Generate Luau Project`.
 
 ## Design boundaries

@@ -6,6 +6,7 @@ import { ForgeCanvasProvider } from "./canvas";
 import { applyCanvasEdit, hydrateDefinition, sampleDefinition, type CanvasEdit, type TowerDefenseDefinition } from "./model";
 import { validateDefinition } from "./validation";
 import { preserveUserRegions } from "./ownership";
+import { runToolchain } from "./toolchain";
 
 const definitionPath = (root: string) => path.join(root, ".forge", "tower-defense.json");
 
@@ -32,9 +33,11 @@ async function writeFiles(root: string, files: ReturnType<typeof generateTowerDe
 
 export function activate(context: vscode.ExtensionContext) {
   const canvas = new ForgeCanvasProvider();
+  const toolOutput = vscode.window.createOutputChannel("Roblox Forge · Build & Test");
   const undoStack: TowerDefenseDefinition[] = [];
   const redoStack: TowerDefenseDefinition[] = [];
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(ForgeCanvasProvider.viewType, canvas));
+  context.subscriptions.push(toolOutput);
   const refreshCanvas = async () => {
     const root = await workspaceRoot();
     if (!root) return canvas.setState();
@@ -114,6 +117,36 @@ export function activate(context: vscode.ExtensionContext) {
       await refreshCanvas();
       vscode.window.showInformationMessage("Generated Luau domain, network schemas, Rojo project, Wally manifest, and domain test.");
     } catch (error) { vscode.window.showErrorMessage(`Forge generation failed: ${String(error)}`); }
+  }));
+  context.subscriptions.push(vscode.commands.registerCommand("robloxForge.buildAndTest", async () => {
+    const root = await workspaceRoot();
+    if (!root) return vscode.window.showErrorMessage("Open a Forge project first.");
+    try {
+      const definition = await readDefinition(root);
+      const diagnostics = validateDefinition(definition);
+      if (diagnostics.length) {
+        canvas.setState(definition, diagnostics);
+        return vscode.window.showErrorMessage(`Build & Test stopped: ${diagnostics.map((item) => item.message).join(" ")}`);
+      }
+      await writeFiles(root, generateTowerDefense(definition));
+      const results = await runToolchain(root);
+      toolOutput.clear();
+      toolOutput.appendLine("Roblox Forge Build & Test");
+      toolOutput.appendLine("✓ Graph valid");
+      toolOutput.appendLine("✓ Code generated");
+      for (const result of results) {
+        const icon = result.status === "passed" ? "✓" : result.status === "unavailable" ? "–" : "✗";
+        toolOutput.appendLine(`${icon} ${result.label} — ${result.status}`);
+        toolOutput.appendLine(`  ${result.command}`);
+        if (result.output) toolOutput.appendLine(`  ${result.output.replace(/\n/g, "\n  ")}`);
+      }
+      toolOutput.show(true);
+      const failures = results.filter((result) => result.status === "failed");
+      const unavailable = results.filter((result) => result.status === "unavailable");
+      if (failures.length) vscode.window.showErrorMessage(`Build & Test: ${failures.length} check${failures.length === 1 ? "" : "s"} failed. See Roblox Forge · Build & Test.`);
+      else if (unavailable.length) vscode.window.showWarningMessage(`Graph and generation passed. ${unavailable.length} local tool${unavailable.length === 1 ? " is" : "s are"} unavailable; see Build & Test output.`);
+      else vscode.window.showInformationMessage("Build & Test passed.");
+    } catch (error) { vscode.window.showErrorMessage(`Build & Test failed: ${String(error)}`); }
   }));
   context.subscriptions.push(vscode.commands.registerCommand("robloxForge.openGeneratedSimulation", async () => {
     const root = await workspaceRoot();

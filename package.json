@@ -18,7 +18,8 @@
     "onCommand:robloxForge.newTowerDefenseProject",
     "onCommand:robloxForge.newProject",
     "onCommand:robloxForge.validate",
-    "onCommand:robloxForge.generate"
+    "onCommand:robloxForge.generate",
+    "onCommand:robloxForge.buildAndTest"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -38,6 +39,10 @@
       {
         "command": "robloxForge.generate",
         "title": "Roblox Forge: Generate Luau Project"
+      },
+      {
+        "command": "robloxForge.buildAndTest",
+        "title": "Roblox Forge: Build & Test"
       },
       {
         "command": "robloxForge.openGeneratedSimulation",
