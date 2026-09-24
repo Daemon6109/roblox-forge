@@ -46,6 +46,9 @@ export type CanvasEdit =
   | { kind: "setMessageFieldName"; value: string; fieldIndex: number; name: string }
   | { kind: "setMessageFieldType"; value: string; fieldIndex: number; fieldType: Field["type"] }
   | { kind: "removeMessageField"; value: string; fieldIndex: number }
+  | { kind: "addTest" }
+  | { kind: "removeTest"; value: string }
+  | { kind: "updateTest"; value: string; test: VisualTest }
   | { kind: "addBlock"; value: SimulationBlockKind }
   | { kind: "toggleBlock"; value: string }
   | { kind: "removeBlock"; value: string }
@@ -108,6 +111,12 @@ function nextMessageName(messages: NetworkMessage[]) {
   let suffix = 2;
   while (messages.some((message) => message.name === `${base}${suffix}`)) suffix++;
   return `${base}${suffix}`;
+}
+
+function nextTestId(tests: VisualTest[]) {
+  let suffix = tests.length + 1;
+  while (tests.some((test) => test.id === `invariant-${suffix}`)) suffix++;
+  return `invariant-${suffix}`;
 }
 
 /** Applies only whitelisted visual-canvas changes; never blindly merges webview input. */
@@ -180,6 +189,22 @@ export function applyCanvasEdit(definition: TowerDefenseDefinition, edit: Canvas
       const message = next.messages.find((candidate) => candidate.name === edit.value);
       if (!message || !message.fields[edit.fieldIndex]) throw new Error("Network field was not found.");
       message.fields.splice(edit.fieldIndex, 1);
+      break;
+    }
+    case "addTest":
+      next.tests.push({ id: nextTestId(next.tests), name: `State invariant ${next.tests.length + 1}`, condition: { field: "lives", comparison: ">=", amount: 0 } });
+      break;
+    case "removeTest":
+      if (!next.tests.some((test) => test.id === edit.value)) throw new Error("Visual test was not found.");
+      next.tests = next.tests.filter((test) => test.id !== edit.value);
+      break;
+    case "updateTest": {
+      const index = next.tests.findIndex((test) => test.id === edit.value);
+      const test = edit.test;
+      const validCondition = stateFields.has(test.condition.field) && [">=", ">", "<=", "<", "=="].includes(test.condition.comparison) && Number.isFinite(test.condition.amount);
+      const uniqueName = !next.tests.some((candidate, candidateIndex) => candidateIndex !== index && candidate.name === test.name.trim());
+      if (index < 0 || !test.name.trim() || test.name.trim().length > 80 || !validCondition || !uniqueName) throw new Error("Visual tests need a unique name and valid state condition.");
+      next.tests[index] = { id: edit.value, name: test.name.trim(), condition: structuredClone(test.condition) };
       break;
     }
     case "addBlock": {

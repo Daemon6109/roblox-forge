@@ -29,6 +29,13 @@ describe("visual definition edits", () => {
     expect(updated.messages).toEqual([{ name: "AbilityActivated", direction: "serverToClient", fields: [{ name: "abilityId", type: "u16" }, { name: "accepted", type: "boolean" }] }]);
   });
 
+  it("adds and edits generated visual invariant tests", () => {
+    const withTest = applyCanvasEdit(sampleDefinition(), { kind: "addTest" });
+    const test = withTest.tests.at(-1)!;
+    const updated = applyCanvasEdit(withTest, { kind: "updateTest", value: test.id, test: { id: test.id, name: "Currency stays positive", condition: { field: "currency", comparison: ">=", amount: 0 } } });
+    expect(updated.tests.at(-1)).toMatchObject({ name: "Currency stays positive", condition: { field: "currency", comparison: ">=", amount: 0 } });
+  });
+
   it("stores custom Luau only on a Custom System block", () => {
     const withBlock = applyCanvasEdit(sampleDefinition(), { kind: "addBlock", value: "customSystem" });
     const custom = withBlock.flow.at(-1)!;

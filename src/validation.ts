@@ -43,5 +43,15 @@ export function validateDefinition(definition: TowerDefenseDefinition): Diagnost
       fields.add(field.name);
     }
   }
+  const testNames = new Set<string>();
+  const testIds = new Set<string>();
+  for (const test of definition.tests) {
+    if (!test.id || testIds.has(test.id)) diagnostics.push({ path: `tests.${test.id}`, message: "Visual test IDs must be unique." });
+    testIds.add(test.id);
+    if (!test.name.trim()) diagnostics.push({ path: `tests.${test.id}`, message: "Visual tests need a name." });
+    if (testNames.has(test.name)) diagnostics.push({ path: `tests.${test.id}`, message: "Visual test names must be unique." });
+    testNames.add(test.name);
+    if (!Number.isFinite(test.condition.amount)) diagnostics.push({ path: `tests.${test.id}`, message: "Visual test thresholds must be finite numbers." });
+  }
   return diagnostics;
 }
