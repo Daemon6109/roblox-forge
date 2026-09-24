@@ -14,7 +14,8 @@ const systemFunctions: Record<TowerDefenseDefinition["flow"][number]["kind"], { 
   acquireTargets: { label: "Acquire Targets", primary: "maxTargets" },
   attackTargets: { label: "Attack Targets", primary: "attacksPerTick" },
   applyDamage: { label: "Apply Damage", primary: "damage" },
-  cleanupDead: { label: "Cleanup Dead", primary: "threshold" }
+  cleanupDead: { label: "Cleanup Dead", primary: "threshold" },
+  customSystem: { label: "Custom System", primary: "" }
 };
 
 export function generateTowerDefense(definition: TowerDefenseDefinition): GeneratedFile[] {
@@ -26,6 +27,7 @@ export function generateTowerDefense(definition: TowerDefenseDefinition): Genera
   const enabledBlocks = scheduleBlocks(definition);
   const helpers = enabledBlocks.map((block) => {
     const system = systemFunctions[block.kind];
+    if (block.kind === "customSystem") return `local function ${functionName(block.id)}(state: State): State\n\t-- Custom System block (${block.id}). Edit this from the Forge graph inspector.\n-- <forge:user-code id="${block.id}">\n${block.code?.trim() || "\treturn state"}\n-- </forge:user-code>\nend`;
     const primaryValue = block.config[system.primary];
     const wave = block.kind === "spawnWave" ? `state.wave + ${primaryValue}` : "state.wave";
     return `local function ${functionName(block.id)}(state: State): State\n\t-- ${system.label} block (${block.id}); visual property ${system.primary} = ${primaryValue}\n\treturn { wave = ${wave}, currency = state.currency, lives = state.lives, tick = state.tick + 1, lastSystem = ${quote(block.label)}, lastValue = ${primaryValue} }\nend`;

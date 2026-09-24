@@ -6,10 +6,10 @@ export type NetworkMessage = {
   fields: Field[];
 };
 
-export type SimulationBlockKind = "spawnWave" | "moveEnemies" | "acquireTargets" | "attackTargets" | "applyDamage" | "cleanupDead";
+export type SimulationBlockKind = "spawnWave" | "moveEnemies" | "acquireTargets" | "attackTargets" | "applyDamage" | "cleanupDead" | "customSystem";
 export type GraphPosition = { x: number; y: number };
 export type FlowConnection = { from: string; to: string };
-export type SimulationBlock = { id: string; kind: SimulationBlockKind; enabled: boolean; label: string; position: GraphPosition; config: Record<string, number> };
+export type SimulationBlock = { id: string; kind: SimulationBlockKind; enabled: boolean; label: string; position: GraphPosition; config: Record<string, number>; code?: string };
 
 export type TowerDefenseDefinition = {
   version: 1;
@@ -36,20 +36,22 @@ export type CanvasEdit =
   | { kind: "setBlockPosition"; value: string; position: GraphPosition }
   | { kind: "setBlockLabel"; value: string; label: string }
   | { kind: "setBlockConfig"; value: string; key: string; amount: number }
+  | { kind: "setBlockCode"; value: string; code: string }
   | { kind: "connectBlocks"; from: string; to: string }
   | { kind: "disconnectBlock"; value: string };
 
 const topologies = new Set<TowerDefenseDefinition["topology"]>(["spline", "graph", "lanes"]);
 const economies = new Set<TowerDefenseDefinition["economy"]>(["shared", "per-player"]);
 const targetModes = new Set<TowerDefenseDefinition["targeting"][number]>(["first", "last", "strongest", "weakest", "nearest"]);
-const blockKinds = new Set<SimulationBlockKind>(["spawnWave", "moveEnemies", "acquireTargets", "attackTargets", "applyDamage", "cleanupDead"]);
+const blockKinds = new Set<SimulationBlockKind>(["spawnWave", "moveEnemies", "acquireTargets", "attackTargets", "applyDamage", "cleanupDead", "customSystem"]);
 const blockDefaults: Record<SimulationBlockKind, { label: string; config: Record<string, number> }> = {
   spawnWave: { label: "Spawn Wave", config: { waveIncrement: 1 } },
   moveEnemies: { label: "Move Enemies", config: { speed: 1 } },
   acquireTargets: { label: "Acquire Targets", config: { maxTargets: 1 } },
   attackTargets: { label: "Attack Targets", config: { attacksPerTick: 1 } },
   applyDamage: { label: "Apply Damage", config: { damage: 10 } },
-  cleanupDead: { label: "Cleanup Dead", config: { threshold: 0 } }
+  cleanupDead: { label: "Cleanup Dead", config: { threshold: 0 } },
+  customSystem: { label: "Custom System", config: {} }
 };
 
 const defaultFlow = (): SimulationBlock[] => [
@@ -138,6 +140,13 @@ export function applyCanvasEdit(definition: TowerDefenseDefinition, edit: Canvas
       const block = next.flow.find((candidate) => candidate.id === edit.value);
       if (!block || !(edit.key in blockDefaults[block.kind].config) || !Number.isFinite(edit.amount)) throw new Error("Invalid block property.");
       block.config[edit.key] = edit.amount;
+      break;
+    }
+    case "setBlockCode": {
+      const block = next.flow.find((candidate) => candidate.id === edit.value);
+      if (!block || block.kind !== "customSystem") throw new Error("Only Custom System blocks accept custom Luau.");
+      if (edit.code.length > 20_000) throw new Error("Custom system code is limited to 20,000 characters.");
+      block.code = edit.code;
       break;
     }
     case "connectBlocks": {

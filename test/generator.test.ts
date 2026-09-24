@@ -25,4 +25,14 @@ describe("Tower Defense generator", () => {
     expect(simulation).toContain("state = spawnWave(state)");
     expect(simulation).not.toContain("local function cleanupDead");
   });
+
+  it("emits a custom system block as editable Luau in the scheduled graph", () => {
+    const definition = sampleDefinition();
+    const custom = { ...definition.flow[0], id: "customSystem-1", kind: "customSystem" as const, label: "Grant Bonus", config: {}, code: "\treturn state" };
+    definition.flow = [custom];
+    definition.connections = [];
+    const simulation = generateTowerDefense(definition).find((file) => file.path === "src/shared/domain/Simulation.luau")?.content ?? "";
+    expect(simulation).toContain("Custom System block (customSystem-1)");
+    expect(simulation).toContain('id="customSystem-1"');
+  });
 });

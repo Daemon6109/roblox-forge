@@ -1,4 +1,4 @@
-const regionPattern = /-- <forge:user-code id="([a-z0-9-]+)">\n([\s\S]*?)-- <\/forge:user-code>/g;
+const regionPattern = /-- <forge:user-code id="([A-Za-z0-9-]+)">\n([\s\S]*?)-- <\/forge:user-code>/g;
 
 /**
  * Preserves supported hand-authored Luau regions during regeneration.
