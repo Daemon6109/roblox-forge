@@ -8,6 +8,7 @@ import { validateDefinition } from "./validation";
 import { preserveUserRegions } from "./ownership";
 import { installWallyDependencies, runToolchain } from "./toolchain";
 import { ForgeExplorerProvider } from "./explorer";
+import { scheduleBlocks } from "./graph";
 
 const definitionPath = (root: string) => path.join(root, ".forge", "tower-defense.json");
 
@@ -59,6 +60,7 @@ export function activate(context: vscode.ExtensionContext) {
       { label: "Install Wally Dependencies", command: "robloxForge.installDependencies" },
       { label: "Generate Luau Project", command: "robloxForge.generate" },
       { label: "Open Generated Simulation", command: "robloxForge.openGeneratedSimulation" },
+      { label: "Auto-layout Graph", command: "robloxForge.autoLayout" },
       { label: "Add Visual Block…", command: "addBlock" }
     ], { title: "Roblox Forge", placeHolder: "What do you want to do?" });
     if (!choice) return;
@@ -84,6 +86,24 @@ export function activate(context: vscode.ExtensionContext) {
       await writeFiles(destination, generateTowerDefense(definition));
       await vscode.commands.executeCommand("vscode.openFolder", vscode.Uri.file(destination), true);
     } catch (error) { vscode.window.showErrorMessage(`Could not create Forge project: ${String(error)}`); }
+  }));
+  context.subscriptions.push(vscode.commands.registerCommand("robloxForge.autoLayout", async () => {
+    const root = await workspaceRoot();
+    if (!root) return vscode.window.showErrorMessage("Open a Forge project first.");
+    try {
+      const current = await readDefinition(root);
+      const next = structuredClone(current);
+      scheduleBlocks(next).forEach((block, index) => {
+        const target = next.flow.find((candidate) => candidate.id === block.id)!;
+        target.position = { x: 70 + (index % 3) * 270, y: 60 + Math.floor(index / 3) * 180 };
+      });
+      undoStack.push(current);
+      redoStack.length = 0;
+      await saveDefinition(root, next);
+      canvas.setState(next, validateDefinition(next));
+      explorer.setProject(root, next);
+      vscode.window.showInformationMessage("Forge graph auto-layout complete.");
+    } catch (error) { vscode.window.showErrorMessage(`Could not auto-layout graph: ${String(error)}`); }
   }));
   context.subscriptions.push(vscode.commands.registerCommand("robloxForge.newTowerDefenseProject", async () => {
     const root = await workspaceRoot();

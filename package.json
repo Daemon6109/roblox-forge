@@ -22,6 +22,7 @@
     "onCommand:robloxForge.buildAndTest"
     ,"onCommand:robloxForge.installDependencies"
     ,"onCommand:robloxForge.commandPalette"
+    ,"onCommand:robloxForge.autoLayout"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -57,6 +58,10 @@
       {
         "command": "robloxForge.commandPalette",
         "title": "Roblox Forge: Command Palette"
+      },
+      {
+        "command": "robloxForge.autoLayout",
+        "title": "Roblox Forge: Auto-layout Graph"
       }
     ],
     "viewsContainers": {

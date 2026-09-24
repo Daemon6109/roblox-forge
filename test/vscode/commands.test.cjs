@@ -33,6 +33,8 @@ suite("Roblox Forge extension host", () => {
     assert.equal(JSON.parse(await fs.readFile(definitionPath, "utf8")).flow.length, 6);
     await vscode.commands.executeCommand("robloxForge.redo");
     assert.equal(JSON.parse(await fs.readFile(definitionPath, "utf8")).flow.length, 7);
+    await vscode.commands.executeCommand("robloxForge.autoLayout");
+    assert.deepEqual(JSON.parse(await fs.readFile(definitionPath, "utf8")).flow[0].position, { x: 70, y: 60 });
 
     await vscode.commands.executeCommand("robloxForge.validate");
     await vscode.commands.executeCommand("robloxForge.generate");
