@@ -39,6 +39,13 @@ export type CanvasEdit =
   | { kind: "toggleTargeting"; value: TowerDefenseDefinition["targeting"][number] }
   | { kind: "addMessage" }
   | { kind: "removeMessage"; value: string }
+  | { kind: "setMessageName"; value: string; name: string }
+  | { kind: "toggleMessageDirection"; value: string }
+  | { kind: "updateMessage"; value: string; message: NetworkMessage }
+  | { kind: "addMessageField"; value: string }
+  | { kind: "setMessageFieldName"; value: string; fieldIndex: number; name: string }
+  | { kind: "setMessageFieldType"; value: string; fieldIndex: number; fieldType: Field["type"] }
+  | { kind: "removeMessageField"; value: string; fieldIndex: number }
   | { kind: "addBlock"; value: SimulationBlockKind }
   | { kind: "toggleBlock"; value: string }
   | { kind: "removeBlock"; value: string }
@@ -127,6 +134,54 @@ export function applyCanvasEdit(definition: TowerDefenseDefinition, edit: Canvas
     case "removeMessage":
       next.messages = next.messages.filter((message) => message.name !== edit.value);
       break;
+    case "setMessageName": {
+      const message = next.messages.find((candidate) => candidate.name === edit.value);
+      if (!message || !/^[A-Z][A-Za-z0-9]*$/.test(edit.name) || next.messages.some((candidate) => candidate !== message && candidate.name === edit.name)) throw new Error("Network message names must be unique PascalCase.");
+      message.name = edit.name;
+      break;
+    }
+    case "toggleMessageDirection": {
+      const message = next.messages.find((candidate) => candidate.name === edit.value);
+      if (!message) throw new Error("Network message was not found.");
+      message.direction = message.direction === "clientToServer" ? "serverToClient" : "clientToServer";
+      break;
+    }
+    case "updateMessage": {
+      const index = next.messages.findIndex((candidate) => candidate.name === edit.value);
+      const message = edit.message;
+      const validName = /^[A-Z][A-Za-z0-9]*$/.test(message.name);
+      const validDirection = message.direction === "clientToServer" || message.direction === "serverToClient";
+      const validFields = Array.isArray(message.fields) && message.fields.every((field) => /^[a-z][A-Za-z0-9]*$/.test(field.name) && fieldTypes.has(field.type));
+      const uniqueFields = validFields && new Set(message.fields.map((field) => field.name)).size === message.fields.length;
+      const uniqueName = !next.messages.some((candidate, candidateIndex) => candidateIndex !== index && candidate.name === message.name);
+      if (index < 0 || !validName || !validDirection || !uniqueFields || !uniqueName) throw new Error("Network messages need a unique PascalCase name and unique typed camelCase fields.");
+      next.messages[index] = structuredClone(message);
+      break;
+    }
+    case "addMessageField": {
+      const message = next.messages.find((candidate) => candidate.name === edit.value);
+      if (!message) throw new Error("Network message was not found.");
+      message.fields.push({ name: `value${message.fields.length + 1}`, type: "number" });
+      break;
+    }
+    case "setMessageFieldName": {
+      const message = next.messages.find((candidate) => candidate.name === edit.value);
+      if (!message || !message.fields[edit.fieldIndex] || !/^[a-z][A-Za-z0-9]*$/.test(edit.name) || message.fields.some((field, index) => index !== edit.fieldIndex && field.name === edit.name)) throw new Error("Network field names must be unique camelCase.");
+      message.fields[edit.fieldIndex].name = edit.name;
+      break;
+    }
+    case "setMessageFieldType": {
+      const message = next.messages.find((candidate) => candidate.name === edit.value);
+      if (!message || !message.fields[edit.fieldIndex] || !fieldTypes.has(edit.fieldType)) throw new Error("Unsupported network field type.");
+      message.fields[edit.fieldIndex].type = edit.fieldType;
+      break;
+    }
+    case "removeMessageField": {
+      const message = next.messages.find((candidate) => candidate.name === edit.value);
+      if (!message || !message.fields[edit.fieldIndex]) throw new Error("Network field was not found.");
+      message.fields.splice(edit.fieldIndex, 1);
+      break;
+    }
     case "addBlock": {
       if (!blockKinds.has(edit.value)) throw new Error("Unsupported simulation block.");
       const number = next.flow.filter((block) => block.kind === edit.value).length + 1;

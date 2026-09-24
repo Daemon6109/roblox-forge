@@ -19,7 +19,7 @@ Legend: ✅ shipped and tested · 🟡 scaffolded/partial · ⬜ not built
 
 - ✅ Generated project separates `src/shared/domain` from Roblox adapter destinations.
 - 🟡 Pure simulation boundary: an ordered visual block pipeline now generates typed Luau state-transition functions and a typed context from bound visual data contracts; deep gameplay behavior is still factory work.
-- 🟡 Network contract generation produces typed Luau shapes; it does not call Lync yet.
+- 🟡 Visual network contracts now own message names, directions, and typed fields; generation emits normal typed Luau contract shapes. It does not call Lync or create real Roblox remotes yet.
 - 🟡 Tower Defense factory records topology, economy, targeting, and messages.
 - ⬜ Component/entity/archetype/system/query/schedule authoring.
 - ⬜ Roblox client/server adapter generation: Instances, Players, remotes, presentation, input, sounds, DataStores.

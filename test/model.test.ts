@@ -16,6 +16,19 @@ describe("visual definition edits", () => {
     expect(updated.messages.map((message) => message.name)).toEqual(["PlaceTower", "AbilityActivated"]);
   });
 
+  it("edits a network contract atomically with typed fields", () => {
+    const updated = applyCanvasEdit(sampleDefinition(), {
+      kind: "updateMessage",
+      value: "PlaceTower",
+      message: {
+        name: "AbilityActivated",
+        direction: "serverToClient",
+        fields: [{ name: "abilityId", type: "u16" }, { name: "accepted", type: "boolean" }]
+      }
+    });
+    expect(updated.messages).toEqual([{ name: "AbilityActivated", direction: "serverToClient", fields: [{ name: "abilityId", type: "u16" }, { name: "accepted", type: "boolean" }] }]);
+  });
+
   it("stores custom Luau only on a Custom System block", () => {
     const withBlock = applyCanvasEdit(sampleDefinition(), { kind: "addBlock", value: "customSystem" });
     const custom = withBlock.flow.at(-1)!;
