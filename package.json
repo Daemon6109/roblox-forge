@@ -23,6 +23,8 @@
     ,"onCommand:robloxForge.installDependencies"
     ,"onCommand:robloxForge.commandPalette"
     ,"onCommand:robloxForge.autoLayout"
+    ,"onCommand:robloxForge.createSnapshot"
+    ,"onCommand:robloxForge.restoreSnapshot"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -62,6 +64,14 @@
       {
         "command": "robloxForge.autoLayout",
         "title": "Roblox Forge: Auto-layout Graph"
+      },
+      {
+        "command": "robloxForge.createSnapshot",
+        "title": "Roblox Forge: Create Snapshot"
+      },
+      {
+        "command": "robloxForge.restoreSnapshot",
+        "title": "Roblox Forge: Restore Snapshot…"
       }
     ],
     "viewsContainers": {

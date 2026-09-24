@@ -11,6 +11,7 @@ import { ForgeExplorerProvider } from "./explorer";
 import { scheduleBlocks } from "./graph";
 
 const definitionPath = (root: string) => path.join(root, ".forge", "tower-defense.json");
+const historyPath = (root: string) => path.join(root, ".forge", "history");
 
 async function workspaceRoot(): Promise<string | undefined> {
   return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
@@ -61,6 +62,8 @@ export function activate(context: vscode.ExtensionContext) {
       { label: "Generate Luau Project", command: "robloxForge.generate" },
       { label: "Open Generated Simulation", command: "robloxForge.openGeneratedSimulation" },
       { label: "Auto-layout Graph", command: "robloxForge.autoLayout" },
+      { label: "Create Durable Snapshot", command: "robloxForge.createSnapshot" },
+      { label: "Restore Durable Snapshot…", command: "robloxForge.restoreSnapshot" },
       { label: "Add Visual Block…", command: "addBlock" }
     ], { title: "Roblox Forge", placeHolder: "What do you want to do?" });
     if (!choice) return;
@@ -104,6 +107,37 @@ export function activate(context: vscode.ExtensionContext) {
       explorer.setProject(root, next);
       vscode.window.showInformationMessage("Forge graph auto-layout complete.");
     } catch (error) { vscode.window.showErrorMessage(`Could not auto-layout graph: ${String(error)}`); }
+  }));
+  context.subscriptions.push(vscode.commands.registerCommand("robloxForge.createSnapshot", async () => {
+    const root = await workspaceRoot();
+    if (!root) return vscode.window.showErrorMessage("Open a Forge project first.");
+    try {
+      const definition = await readDefinition(root);
+      const label = await vscode.window.showInputBox({ prompt: "Snapshot label (optional)", placeHolder: "before-upgrade-tree" });
+      if (label === undefined) return;
+      const safeLabel = label.trim().replace(/[^a-z0-9-]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "snapshot";
+      const name = `${new Date().toISOString().replace(/[:.]/g, "-")}-${safeLabel}.json`;
+      await fs.mkdir(historyPath(root), { recursive: true });
+      await fs.writeFile(path.join(historyPath(root), name), JSON.stringify(definition, null, 2) + "\n", "utf8");
+      vscode.window.showInformationMessage(`Forge snapshot created: ${name}`);
+    } catch (error) { vscode.window.showErrorMessage(`Could not create snapshot: ${String(error)}`); }
+  }));
+  context.subscriptions.push(vscode.commands.registerCommand("robloxForge.restoreSnapshot", async () => {
+    const root = await workspaceRoot();
+    if (!root) return vscode.window.showErrorMessage("Open a Forge project first.");
+    try {
+      const files = (await fs.readdir(historyPath(root))).filter((file) => file.endsWith(".json")).sort().reverse();
+      const selected = await vscode.window.showQuickPick(files, { title: "Restore Forge snapshot", placeHolder: "Choose a saved project definition" });
+      if (!selected) return;
+      const current = await readDefinition(root);
+      const restored = hydrateDefinition(JSON.parse(await fs.readFile(path.join(historyPath(root), selected), "utf8")) as TowerDefenseDefinition);
+      undoStack.push(current);
+      redoStack.length = 0;
+      await saveDefinition(root, restored);
+      canvas.setState(restored, validateDefinition(restored));
+      explorer.setProject(root, restored);
+      vscode.window.showInformationMessage(`Restored Forge snapshot: ${selected}`);
+    } catch (error) { vscode.window.showErrorMessage(`Could not restore snapshot: ${String(error)}`); }
   }));
   context.subscriptions.push(vscode.commands.registerCommand("robloxForge.newTowerDefenseProject", async () => {
     const root = await workspaceRoot();
