@@ -43,3 +43,7 @@ JECS, Lync, Lyra, Rojo, Wally, StyLua, Selene, and Lute will be integrated only 
 3. Lute/StyLua/Selene/Rojo orchestration with clickable diagnostics.
 4. Tower Defense factory simulation dashboard.
 5. Grid-tactics factory and migration editor for Lyra persistence.
+
+## Quality gate
+
+Every push runs `npm ci` and `npm run package` in GitHub Actions. The local package gate typechecks the extension, runs generator tests, and bundles the VS Code extension.
