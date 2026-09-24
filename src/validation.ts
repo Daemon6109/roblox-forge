@@ -53,5 +53,15 @@ export function validateDefinition(definition: TowerDefenseDefinition): Diagnost
     testNames.add(test.name);
     if (!Number.isFinite(test.condition.amount)) diagnostics.push({ path: `tests.${test.id}`, message: "Visual test thresholds must be finite numbers." });
   }
+  const packageAliases = new Set<string>();
+  const packageIds = new Set<string>();
+  for (const item of definition.packages) {
+    if (!item.id || packageIds.has(item.id)) diagnostics.push({ path: `packages.${item.id}`, message: "Package IDs must be unique." });
+    packageIds.add(item.id);
+    if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(item.alias)) diagnostics.push({ path: `packages.${item.id}`, message: "Package aliases must be valid Luau identifiers." });
+    if (packageAliases.has(item.alias)) diagnostics.push({ path: `packages.${item.id}`, message: "Package aliases must be unique." });
+    packageAliases.add(item.alias);
+    if (!/^[A-Za-z0-9_-]+\/[A-Za-z0-9_.-]+@[^\s@]+$/.test(item.spec)) diagnostics.push({ path: `packages.${item.id}`, message: "Package specs must use Wally's scope/name@version form." });
+  }
   return diagnostics;
 }

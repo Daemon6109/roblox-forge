@@ -19,6 +19,19 @@ describe("Tower Defense generator", () => {
     expect(() => generateTowerDefense(definition)).toThrow("PascalCase");
   });
 
+  it("generates Wally package sections from visual package declarations", () => {
+    const definition = sampleDefinition();
+    definition.packages = [
+      { id: "shared-package", alias: "Jecs", spec: "ukendio/jecs@0.5.0", realm: "shared" },
+      { id: "server-package", alias: "Lyra", spec: "paradoxum-games/lyra@0.1.0", realm: "server" }
+    ];
+    const manifest = generateTowerDefense(definition).find((file) => file.path === "wally.toml")?.content ?? "";
+    expect(manifest).toContain('[dependencies]');
+    expect(manifest).toContain('Jecs = "ukendio/jecs@0.5.0"');
+    expect(manifest).toContain('[server-dependencies]');
+    expect(manifest).toContain('Lyra = "paradoxum-games/lyra@0.1.0"');
+  });
+
   it("turns enabled visual blocks into a concrete Luau execution pipeline", () => {
     const definition = sampleDefinition();
     definition.flow = [{ ...definition.flow[0], enabled: true }, { ...definition.flow[5], enabled: false }];

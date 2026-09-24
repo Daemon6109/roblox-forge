@@ -7,6 +7,8 @@ export type NetworkMessage = {
   direction: "clientToServer" | "serverToClient";
   fields: Field[];
 };
+export type PackageRealm = "shared" | "server" | "dev";
+export type PackageDependency = { id: string; alias: string; spec: string; realm: PackageRealm };
 
 export type SimulationBlockKind = "spawnWave" | "moveEnemies" | "acquireTargets" | "attackTargets" | "applyDamage" | "cleanupDead" | "mutateState" | "condition" | "customSystem";
 export type GraphPosition = { x: number; y: number };
@@ -27,6 +29,7 @@ export type TowerDefenseDefinition = {
   economy: "shared" | "per-player";
   targeting: Array<"first" | "last" | "strongest" | "weakest" | "nearest">;
   messages: NetworkMessage[];
+  packages: PackageDependency[];
   flow: SimulationBlock[];
   connections: FlowConnection[];
   schemas: DataSchema[];
@@ -46,6 +49,9 @@ export type CanvasEdit =
   | { kind: "setMessageFieldName"; value: string; fieldIndex: number; name: string }
   | { kind: "setMessageFieldType"; value: string; fieldIndex: number; fieldType: Field["type"] }
   | { kind: "removeMessageField"; value: string; fieldIndex: number }
+  | { kind: "addPackage" }
+  | { kind: "removePackage"; value: string }
+  | { kind: "updatePackage"; value: string; package: PackageDependency }
   | { kind: "addTest" }
   | { kind: "removeTest"; value: string }
   | { kind: "updateTest"; value: string; test: VisualTest }
@@ -76,6 +82,7 @@ const targetModes = new Set<TowerDefenseDefinition["targeting"][number]>(["first
 const schemaKinds = new Set<SchemaKind>(["component", "resource", "event"]);
 const fieldTypes = new Set<Field["type"]>(["string", "number", "boolean", "Vector3", "u16"]);
 const stateFields = new Set<StateField>(["wave", "currency", "lives"]);
+const packageRealms = new Set<PackageRealm>(["shared", "server", "dev"]);
 const flowPorts = new Set<FlowPort>(["next", "true", "false"]);
 const blockKinds = new Set<SimulationBlockKind>(["spawnWave", "moveEnemies", "acquireTargets", "attackTargets", "applyDamage", "cleanupDead", "mutateState", "condition", "customSystem"]);
 const blockDefaults: Record<SimulationBlockKind, { label: string; config: Record<string, number> }> = {
@@ -99,10 +106,10 @@ const defaultFlow = (): SimulationBlock[] => [
   { id: "cleanup-dead", kind: "cleanupDead", enabled: true, position: { x: 260, y: 710 }, bindings: ["health"], ...structuredClone(blockDefaults.cleanupDead) }
 ];
 
-export function hydrateDefinition(value: Omit<TowerDefenseDefinition, "flow" | "connections" | "schemas" | "tests"> & Partial<Pick<TowerDefenseDefinition, "flow" | "connections" | "schemas" | "tests">>): TowerDefenseDefinition {
+export function hydrateDefinition(value: Omit<TowerDefenseDefinition, "flow" | "connections" | "schemas" | "tests" | "packages"> & Partial<Pick<TowerDefenseDefinition, "flow" | "connections" | "schemas" | "tests" | "packages">>): TowerDefenseDefinition {
   const flow = value.flow?.length ? value.flow.map((block, index) => ({ ...structuredClone(blockDefaults[block.kind]), ...block, bindings: block.bindings ?? [], stateMutation: block.kind === "mutateState" ? { field: "currency" as StateField, operation: "add" as const, amount: 10, ...block.stateMutation, operand: block.stateMutation?.operand ?? { source: "literal" as const, amount: block.stateMutation?.amount ?? 10 } } : block.stateMutation, stateCondition: block.kind === "condition" ? block.stateCondition ?? { field: "lives", comparison: ">", amount: 0 } : block.stateCondition, position: block.position ?? { x: 260, y: 60 + index * 130 }, config: { ...blockDefaults[block.kind].config, ...block.config } })) : defaultFlow();
   const connections = value.connections ?? flow.slice(1).map((block, index) => ({ from: flow[index].id, to: block.id }));
-  return { ...value, flow, connections, schemas: value.schemas ?? defaultSchemas(), tests: value.tests ?? defaultTests() };
+  return { ...value, flow, connections, schemas: value.schemas ?? defaultSchemas(), tests: value.tests ?? defaultTests(), packages: value.packages ?? [] };
 }
 
 function nextMessageName(messages: NetworkMessage[]) {
@@ -117,6 +124,12 @@ function nextTestId(tests: VisualTest[]) {
   let suffix = tests.length + 1;
   while (tests.some((test) => test.id === `invariant-${suffix}`)) suffix++;
   return `invariant-${suffix}`;
+}
+
+function nextPackageId(packages: PackageDependency[]) {
+  let suffix = packages.length + 1;
+  while (packages.some((item) => item.id === `package-${suffix}`)) suffix++;
+  return `package-${suffix}`;
 }
 
 /** Applies only whitelisted visual-canvas changes; never blindly merges webview input. */
@@ -189,6 +202,23 @@ export function applyCanvasEdit(definition: TowerDefenseDefinition, edit: Canvas
       const message = next.messages.find((candidate) => candidate.name === edit.value);
       if (!message || !message.fields[edit.fieldIndex]) throw new Error("Network field was not found.");
       message.fields.splice(edit.fieldIndex, 1);
+      break;
+    }
+    case "addPackage":
+      next.packages.push({ id: nextPackageId(next.packages), alias: `Package${next.packages.length + 1}`, spec: "author/package@0.1.0", realm: "shared" });
+      break;
+    case "removePackage":
+      if (!next.packages.some((item) => item.id === edit.value)) throw new Error("Package was not found.");
+      next.packages = next.packages.filter((item) => item.id !== edit.value);
+      break;
+    case "updatePackage": {
+      const index = next.packages.findIndex((item) => item.id === edit.value);
+      const item = edit.package;
+      const validAlias = /^[A-Za-z][A-Za-z0-9_]*$/.test(item.alias);
+      const validSpec = /^[A-Za-z0-9_-]+\/[A-Za-z0-9_.-]+@[^\s@]+$/.test(item.spec);
+      const uniqueAlias = !next.packages.some((candidate, candidateIndex) => candidateIndex !== index && candidate.alias === item.alias);
+      if (index < 0 || !validAlias || !validSpec || !packageRealms.has(item.realm) || !uniqueAlias) throw new Error("Packages need a unique alias, a Wally package spec, and a valid realm.");
+      next.packages[index] = { id: edit.value, alias: item.alias, spec: item.spec, realm: item.realm };
       break;
     }
     case "addTest":
@@ -343,6 +373,7 @@ export const sampleDefinition = (): TowerDefenseDefinition => {
     economy: "shared",
     targeting: ["first", "strongest", "nearest"],
     messages: [{ name: "PlaceTower", direction: "clientToServer", fields: [{ name: "towerId", type: "string" }, { name: "position", type: "Vector3" }] }],
+    packages: [],
     flow,
     connections: flow.slice(1).map((block, index) => ({ from: flow[index].id, to: block.id })),
     schemas: defaultSchemas()

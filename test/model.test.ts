@@ -36,6 +36,13 @@ describe("visual definition edits", () => {
     expect(updated.tests.at(-1)).toMatchObject({ name: "Currency stays positive", condition: { field: "currency", comparison: ">=", amount: 0 } });
   });
 
+  it("declares a Wally package in an explicit realm", () => {
+    const withPackage = applyCanvasEdit(sampleDefinition(), { kind: "addPackage" });
+    const item = withPackage.packages[0];
+    const updated = applyCanvasEdit(withPackage, { kind: "updatePackage", value: item.id, package: { ...item, alias: "Jecs", spec: "ukendio/jecs@0.5.0", realm: "server" } });
+    expect(updated.packages).toEqual([{ id: item.id, alias: "Jecs", spec: "ukendio/jecs@0.5.0", realm: "server" }]);
+  });
+
   it("stores custom Luau only on a Custom System block", () => {
     const withBlock = applyCanvasEdit(sampleDefinition(), { kind: "addBlock", value: "customSystem" });
     const custom = withBlock.flow.at(-1)!;

@@ -29,7 +29,7 @@ Legend: ✅ shipped and tested · 🟡 scaffolded/partial · ⬜ not built
 
 - ✅ TypeScript generator tests, extension-host test, and GitHub Actions verification.
 - 🟡 Rojo configuration generation and a real `rojo build` runner are available through Build & Test; Studio sync/serve lifecycle is still missing.
-- 🟡 Wally manifest generation plus an explicit Wally install command that writes normal package/lock state. Package search, add/remove/update UI, realm selection, and lock validation remain.
+- 🟡 Wally manifest generation, visual add/remove/update package declarations with Shared/Server/Development realms, and an explicit Wally install command that writes normal package/lock state. Package search and lock validation remain.
 - ⬜ StyLua formatting and format diagnostics.
 - ⬜ Selene linting and clickable graph diagnostics.
 - ⬜ Luau static analysis.
