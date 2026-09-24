@@ -46,4 +46,16 @@ describe("Tower Defense generator", () => {
     expect(simulation).toContain("state.currency + 50");
     expect(simulation).toContain("Visual state mutation: add 50 to currency");
   });
+
+  it("generates separate true and false control flow for a condition", () => {
+    const definition = sampleDefinition();
+    const condition = { ...definition.flow[0], id: "still-alive", kind: "condition" as const, label: "Still alive", config: {}, bindings: [], stateCondition: { field: "lives" as const, comparison: ">" as const, amount: 0 } };
+    const onTrue = { ...definition.flow[1], id: "award", kind: "mutateState" as const, label: "Award", config: {}, bindings: [], stateMutation: { field: "currency" as const, operation: "add" as const, amount: 10 } };
+    const onFalse = { ...definition.flow[2], id: "end", kind: "mutateState" as const, label: "End", config: {}, bindings: [], stateMutation: { field: "lives" as const, operation: "set" as const, amount: 0 } };
+    definition.flow = [condition, onTrue, onFalse];
+    definition.connections = [{ from: "still-alive", to: "award", fromPort: "true" }, { from: "still-alive", to: "end", fromPort: "false" }];
+    const simulation = generateTowerDefense(definition).find((file) => file.path === "src/shared/domain/Simulation.luau")?.content ?? "";
+    expect(simulation).toContain('return state.lives > 0 and "true" or "false"');
+    expect(simulation).toContain('state = runFrom("still-alive", state, context)');
+  });
 });

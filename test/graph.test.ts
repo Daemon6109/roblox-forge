@@ -23,4 +23,11 @@ describe("visual execution graph", () => {
     expect(positioned.flow[0].config.waveIncrement).toBe(3);
     expect(positioned.flow[0].position).toEqual({ x: 700, y: 41 });
   });
+
+  it("requires a true and false execution path for condition blocks", () => {
+    const definition = sampleDefinition();
+    definition.flow = [{ ...definition.flow[0], id: "condition", kind: "condition", config: {}, bindings: [], stateCondition: { field: "lives", comparison: ">", amount: 0 } }, definition.flow[1], definition.flow[2]];
+    definition.connections = [{ from: "condition", to: definition.flow[1].id, fromPort: "true" }];
+    expect(validateDefinition(definition).map((item) => item.message)).toContain("Condition Spawn Wave needs both true and false outputs.");
+  });
 });

@@ -33,15 +33,24 @@ export function graphDiagnostics(definition: TowerDefenseDefinition): string[] {
   const ids = new Set(definition.flow.map((block) => block.id));
   const messages: string[] = [];
   const inputCounts = new Map<string, number>();
-  const outputCounts = new Map<string, number>();
+  const outputPorts = new Map<string, Set<string>>();
   for (const edge of definition.connections) {
+    const source = definition.flow.find((block) => block.id === edge.from);
+    const port = edge.fromPort ?? "next";
     if (!ids.has(edge.from) || !ids.has(edge.to)) messages.push("A graph connection points to a missing block.");
     if (edge.from === edge.to) messages.push("A block cannot connect to itself.");
+    if (!source || (source.kind === "condition" ? !["true", "false"].includes(port) : port !== "next")) messages.push("A graph connection uses an invalid execution port.");
     inputCounts.set(edge.to, (inputCounts.get(edge.to) ?? 0) + 1);
-    outputCounts.set(edge.from, (outputCounts.get(edge.from) ?? 0) + 1);
+    const ports = outputPorts.get(edge.from) ?? new Set<string>();
+    if (ports.has(port)) messages.push("An execution port can connect to only one block.");
+    ports.add(port);
+    outputPorts.set(edge.from, ports);
   }
   if ([...inputCounts.values()].some((count) => count > 1)) messages.push("This first graph runtime supports one execution input per block.");
-  if ([...outputCounts.values()].some((count) => count > 1)) messages.push("This first graph runtime supports one execution output per block.");
+  for (const block of definition.flow.filter((block) => block.enabled && block.kind === "condition")) {
+    const ports = outputPorts.get(block.id) ?? new Set<string>();
+    if (!ports.has("true") || !ports.has("false")) messages.push(`Condition ${block.label} needs both true and false outputs.`);
+  }
   if (scheduleBlocks(definition).length !== definition.flow.filter((block) => block.enabled).length) messages.push("The enabled simulation graph contains an execution cycle.");
   return [...new Set(messages)];
 }

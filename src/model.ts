@@ -8,12 +8,14 @@ export type NetworkMessage = {
   fields: Field[];
 };
 
-export type SimulationBlockKind = "spawnWave" | "moveEnemies" | "acquireTargets" | "attackTargets" | "applyDamage" | "cleanupDead" | "mutateState" | "customSystem";
+export type SimulationBlockKind = "spawnWave" | "moveEnemies" | "acquireTargets" | "attackTargets" | "applyDamage" | "cleanupDead" | "mutateState" | "condition" | "customSystem";
 export type GraphPosition = { x: number; y: number };
-export type FlowConnection = { from: string; to: string };
+export type FlowPort = "next" | "true" | "false";
+export type FlowConnection = { from: string; to: string; fromPort?: FlowPort };
 export type StateField = "wave" | "currency" | "lives";
 export type StateMutation = { field: StateField; operation: "add" | "set"; amount: number };
-export type SimulationBlock = { id: string; kind: SimulationBlockKind; enabled: boolean; label: string; position: GraphPosition; config: Record<string, number>; bindings: string[]; stateMutation?: StateMutation; code?: string };
+export type StateCondition = { field: StateField; comparison: ">=" | ">" | "<=" | "<" | "=="; amount: number };
+export type SimulationBlock = { id: string; kind: SimulationBlockKind; enabled: boolean; label: string; position: GraphPosition; config: Record<string, number>; bindings: string[]; stateMutation?: StateMutation; stateCondition?: StateCondition; code?: string };
 
 export type TowerDefenseDefinition = {
   version: 1;
@@ -42,9 +44,10 @@ export type CanvasEdit =
   | { kind: "setBlockLabel"; value: string; label: string }
   | { kind: "setBlockConfig"; value: string; key: string; amount: number }
   | { kind: "setStateMutation"; value: string; mutation: StateMutation }
+  | { kind: "setStateCondition"; value: string; condition: StateCondition }
   | { kind: "setBlockCode"; value: string; code: string }
   | { kind: "toggleBlockBinding"; value: string; schemaId: string }
-  | { kind: "connectBlocks"; from: string; to: string }
+  | { kind: "connectBlocks"; from: string; to: string; fromPort?: FlowPort }
   | { kind: "disconnectBlock"; value: string }
   | { kind: "addSchema"; schemaKind: SchemaKind }
   | { kind: "removeSchema"; value: string }
@@ -60,7 +63,8 @@ const targetModes = new Set<TowerDefenseDefinition["targeting"][number]>(["first
 const schemaKinds = new Set<SchemaKind>(["component", "resource", "event"]);
 const fieldTypes = new Set<Field["type"]>(["string", "number", "boolean", "Vector3", "u16"]);
 const stateFields = new Set<StateField>(["wave", "currency", "lives"]);
-const blockKinds = new Set<SimulationBlockKind>(["spawnWave", "moveEnemies", "acquireTargets", "attackTargets", "applyDamage", "cleanupDead", "mutateState", "customSystem"]);
+const flowPorts = new Set<FlowPort>(["next", "true", "false"]);
+const blockKinds = new Set<SimulationBlockKind>(["spawnWave", "moveEnemies", "acquireTargets", "attackTargets", "applyDamage", "cleanupDead", "mutateState", "condition", "customSystem"]);
 const blockDefaults: Record<SimulationBlockKind, { label: string; config: Record<string, number> }> = {
   spawnWave: { label: "Spawn Wave", config: { waveIncrement: 1 } },
   moveEnemies: { label: "Move Enemies", config: { speed: 1 } },
@@ -69,6 +73,7 @@ const blockDefaults: Record<SimulationBlockKind, { label: string; config: Record
   applyDamage: { label: "Apply Damage", config: { damage: 10 } },
   cleanupDead: { label: "Cleanup Dead", config: { threshold: 0 } },
   mutateState: { label: "Modify Game State", config: {} },
+  condition: { label: "If Game State", config: {} },
   customSystem: { label: "Custom System", config: {} }
 };
 
@@ -82,7 +87,7 @@ const defaultFlow = (): SimulationBlock[] => [
 ];
 
 export function hydrateDefinition(value: Omit<TowerDefenseDefinition, "flow" | "connections" | "schemas"> & Partial<Pick<TowerDefenseDefinition, "flow" | "connections" | "schemas">>): TowerDefenseDefinition {
-  const flow = value.flow?.length ? value.flow.map((block, index) => ({ ...structuredClone(blockDefaults[block.kind]), ...block, bindings: block.bindings ?? [], stateMutation: block.kind === "mutateState" ? block.stateMutation ?? { field: "currency", operation: "add", amount: 10 } : block.stateMutation, position: block.position ?? { x: 260, y: 60 + index * 130 }, config: { ...blockDefaults[block.kind].config, ...block.config } })) : defaultFlow();
+  const flow = value.flow?.length ? value.flow.map((block, index) => ({ ...structuredClone(blockDefaults[block.kind]), ...block, bindings: block.bindings ?? [], stateMutation: block.kind === "mutateState" ? block.stateMutation ?? { field: "currency", operation: "add", amount: 10 } : block.stateMutation, stateCondition: block.kind === "condition" ? block.stateCondition ?? { field: "lives", comparison: ">", amount: 0 } : block.stateCondition, position: block.position ?? { x: 260, y: 60 + index * 130 }, config: { ...blockDefaults[block.kind].config, ...block.config } })) : defaultFlow();
   const connections = value.connections ?? flow.slice(1).map((block, index) => ({ from: flow[index].id, to: block.id }));
   return { ...value, flow, connections, schemas: value.schemas ?? defaultSchemas() };
 }
@@ -122,7 +127,7 @@ export function applyCanvasEdit(definition: TowerDefenseDefinition, edit: Canvas
     case "addBlock": {
       if (!blockKinds.has(edit.value)) throw new Error("Unsupported simulation block.");
       const number = next.flow.filter((block) => block.kind === edit.value).length + 1;
-      next.flow.push({ id: `${edit.value}-${number}`, kind: edit.value, enabled: true, bindings: [], stateMutation: edit.value === "mutateState" ? { field: "currency", operation: "add", amount: 10 } : undefined, position: { x: 480, y: 100 + number * 45 }, ...structuredClone(blockDefaults[edit.value]) });
+      next.flow.push({ id: `${edit.value}-${number}`, kind: edit.value, enabled: true, bindings: [], stateMutation: edit.value === "mutateState" ? { field: "currency", operation: "add", amount: 10 } : undefined, stateCondition: edit.value === "condition" ? { field: "lives", comparison: ">", amount: 0 } : undefined, position: { x: 480, y: 100 + number * 45 }, ...structuredClone(blockDefaults[edit.value]) });
       break;
     }
     case "toggleBlock": {
@@ -166,6 +171,12 @@ export function applyCanvasEdit(definition: TowerDefenseDefinition, edit: Canvas
       block.stateMutation = { ...edit.mutation };
       break;
     }
+    case "setStateCondition": {
+      const block = next.flow.find((candidate) => candidate.id === edit.value);
+      if (!block || block.kind !== "condition" || !stateFields.has(edit.condition.field) || ![">=", ">", "<=", "<", "=="].includes(edit.condition.comparison) || !Number.isFinite(edit.condition.amount)) throw new Error("Invalid state condition.");
+      block.stateCondition = { ...edit.condition };
+      break;
+    }
     case "setBlockCode": {
       const block = next.flow.find((candidate) => candidate.id === edit.value);
       if (!block || block.kind !== "customSystem") throw new Error("Only Custom System blocks accept custom Luau.");
@@ -180,9 +191,11 @@ export function applyCanvasEdit(definition: TowerDefenseDefinition, edit: Canvas
       break;
     }
     case "connectBlocks": {
-      if (edit.from === edit.to || !next.flow.some((block) => block.id === edit.from) || !next.flow.some((block) => block.id === edit.to)) throw new Error("Invalid graph connection.");
-      next.connections = next.connections.filter((connection) => connection.from !== edit.from && connection.to !== edit.to);
-      next.connections.push({ from: edit.from, to: edit.to });
+      const source = next.flow.find((block) => block.id === edit.from);
+      const port = edit.fromPort ?? "next";
+      if (edit.from === edit.to || !source || !next.flow.some((block) => block.id === edit.to) || !flowPorts.has(port) || (source.kind !== "condition" && port !== "next") || (source.kind === "condition" && port === "next")) throw new Error("Invalid graph connection.");
+      next.connections = next.connections.filter((connection) => (connection.from !== edit.from || (connection.fromPort ?? "next") !== port) && connection.to !== edit.to);
+      next.connections.push({ from: edit.from, to: edit.to, fromPort: port });
       break;
     }
     case "disconnectBlock":
