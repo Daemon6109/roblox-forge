@@ -50,7 +50,7 @@ Legend: ✅ shipped and tested · 🟡 scaffolded/partial · ⬜ not built
 
 - ✅ Generator rejects malformed network message names before generation.
 - ✅ Extension-host test executes Create → Validate → Generate in a real VS Code runtime and checks output files.
-- ⬜ Visual test objects: unit, scenario, invariant, serialization, migration, network contract, performance.
+- 🟡 Project definitions now carry generated invariant tests (starting with state invariants) which Forge emits into the Lute suite. Canvas test authoring plus scenario, serialization, migration, network-contract, and performance tests remain.
 - ⬜ Property/fuzz testing and generated invariant suites.
 - 🟡 Build & Test: validates and regenerates the project, then runs available StyLua formatting, Selene analysis, Lute typechecking, and Lute tests with a truthful VS Code output report. Dependency installation, Rojo build, result-to-node linking, simulation dashboard, and test authoring remain incomplete.
 - ⬜ Simulation dashboard: seeds, replays, batch runs, charts, performance distributions, failed invariants.

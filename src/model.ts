@@ -16,6 +16,7 @@ export type StateField = "wave" | "currency" | "lives";
 export type StateOperand = { source: "literal"; amount: number } | { source: "state"; field: StateField };
 export type StateMutation = { field: StateField; operation: "add" | "set"; amount: number; operand?: StateOperand };
 export type StateCondition = { field: StateField; comparison: ">=" | ">" | "<=" | "<" | "=="; amount: number };
+export type VisualTest = { id: string; name: string; condition: StateCondition };
 export type SimulationBlock = { id: string; kind: SimulationBlockKind; enabled: boolean; label: string; position: GraphPosition; config: Record<string, number>; bindings: string[]; stateMutation?: StateMutation; stateCondition?: StateCondition; code?: string };
 
 export type TowerDefenseDefinition = {
@@ -29,6 +30,7 @@ export type TowerDefenseDefinition = {
   flow: SimulationBlock[];
   connections: FlowConnection[];
   schemas: DataSchema[];
+  tests: VisualTest[];
 };
 
 export type CanvasEdit =
@@ -87,10 +89,10 @@ const defaultFlow = (): SimulationBlock[] => [
   { id: "cleanup-dead", kind: "cleanupDead", enabled: true, position: { x: 260, y: 710 }, bindings: ["health"], ...structuredClone(blockDefaults.cleanupDead) }
 ];
 
-export function hydrateDefinition(value: Omit<TowerDefenseDefinition, "flow" | "connections" | "schemas"> & Partial<Pick<TowerDefenseDefinition, "flow" | "connections" | "schemas">>): TowerDefenseDefinition {
+export function hydrateDefinition(value: Omit<TowerDefenseDefinition, "flow" | "connections" | "schemas" | "tests"> & Partial<Pick<TowerDefenseDefinition, "flow" | "connections" | "schemas" | "tests">>): TowerDefenseDefinition {
   const flow = value.flow?.length ? value.flow.map((block, index) => ({ ...structuredClone(blockDefaults[block.kind]), ...block, bindings: block.bindings ?? [], stateMutation: block.kind === "mutateState" ? { field: "currency" as StateField, operation: "add" as const, amount: 10, ...block.stateMutation, operand: block.stateMutation?.operand ?? { source: "literal" as const, amount: block.stateMutation?.amount ?? 10 } } : block.stateMutation, stateCondition: block.kind === "condition" ? block.stateCondition ?? { field: "lives", comparison: ">", amount: 0 } : block.stateCondition, position: block.position ?? { x: 260, y: 60 + index * 130 }, config: { ...blockDefaults[block.kind].config, ...block.config } })) : defaultFlow();
   const connections = value.connections ?? flow.slice(1).map((block, index) => ({ from: flow[index].id, to: block.id }));
-  return { ...value, flow, connections, schemas: value.schemas ?? defaultSchemas() };
+  return { ...value, flow, connections, schemas: value.schemas ?? defaultSchemas(), tests: value.tests ?? defaultTests() };
 }
 
 function nextMessageName(messages: NetworkMessage[]) {
@@ -264,6 +266,7 @@ export const sampleDefinition = (): TowerDefenseDefinition => {
     flow,
     connections: flow.slice(1).map((block, index) => ({ from: flow[index].id, to: block.id })),
     schemas: defaultSchemas()
+    ,tests: defaultTests()
   };
 };
 
@@ -273,4 +276,8 @@ function defaultSchemas(): DataSchema[] {
     { id: "game-state", name: "GameState", kind: "resource", fields: [{ name: "wave", type: "number" }, { name: "lives", type: "number" }] },
     { id: "tower-placed", name: "TowerPlaced", kind: "event", fields: [{ name: "towerId", type: "string" }, { name: "position", type: "Vector3" }] }
   ];
+}
+
+function defaultTests(): VisualTest[] {
+  return [{ id: "lives-nonnegative", name: "Lives never become negative", condition: { field: "lives", comparison: ">=", amount: 0 } }];
 }

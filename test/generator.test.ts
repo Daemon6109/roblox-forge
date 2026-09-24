@@ -10,6 +10,7 @@ describe("Tower Defense generator", () => {
     expect(files.find((file) => file.path === "src/shared/schemas/Network.luau")?.content).toContain("export type PlaceTower");
     expect(files.find((file) => file.path === "src/shared/schemas/GameSchema.luau")?.content).toContain("export type Health");
     expect(files.find((file) => file.path === "src/shared/domain/Simulation.luau")?.content).toContain("Health: GameSchema.Health?");
+    expect(files.find((file) => file.path === "tests/domain/Simulation.spec.luau")?.content).toContain("Lives never become negative");
   });
   it("rejects invalid message names before generation", () => {
     const definition = sampleDefinition();
