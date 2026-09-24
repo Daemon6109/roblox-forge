@@ -51,6 +51,26 @@ export function activate(context: vscode.ExtensionContext) {
     } catch { canvas.setState(); explorer.setProject(root, undefined); }
   };
   void refreshCanvas();
+  context.subscriptions.push(vscode.commands.registerCommand("robloxForge.commandPalette", async () => {
+    const choice = await vscode.window.showQuickPick([
+      { label: "Create Tower Defense Definition", command: "robloxForge.newTowerDefenseProject" },
+      { label: "Validate Graph", command: "robloxForge.validate" },
+      { label: "Build & Test", command: "robloxForge.buildAndTest" },
+      { label: "Install Wally Dependencies", command: "robloxForge.installDependencies" },
+      { label: "Generate Luau Project", command: "robloxForge.generate" },
+      { label: "Open Generated Simulation", command: "robloxForge.openGeneratedSimulation" },
+      { label: "Add Visual Block…", command: "addBlock" }
+    ], { title: "Roblox Forge", placeHolder: "What do you want to do?" });
+    if (!choice) return;
+    if (choice.command === "addBlock") {
+      const kind = await vscode.window.showQuickPick([
+        { label: "Spawn Wave", value: "spawnWave" }, { label: "Move Enemies", value: "moveEnemies" }, { label: "Acquire Targets", value: "acquireTargets" }, { label: "Attack Targets", value: "attackTargets" }, { label: "Apply Damage", value: "applyDamage" }, { label: "Cleanup Dead", value: "cleanupDead" }, { label: "Modify Game State", value: "mutateState" }, { label: "If Game State", value: "condition" }, { label: "Custom Luau System", value: "customSystem" }
+      ], { title: "Add visual block" });
+      if (kind) await vscode.commands.executeCommand("robloxForge.applyEdit", { kind: "addBlock", value: kind.value });
+      return;
+    }
+    await vscode.commands.executeCommand(choice.command);
+  }));
   context.subscriptions.push(vscode.commands.registerCommand("robloxForge.newProject", async () => {
     const parent = await vscode.window.showOpenDialog({ canSelectFiles: false, canSelectFolders: true, canSelectMany: false, openLabel: "Choose project location" });
     if (!parent?.[0]) return;

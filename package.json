@@ -21,6 +21,7 @@
     "onCommand:robloxForge.generate",
     "onCommand:robloxForge.buildAndTest"
     ,"onCommand:robloxForge.installDependencies"
+    ,"onCommand:robloxForge.commandPalette"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -52,6 +53,10 @@
       {
         "command": "robloxForge.openGeneratedSimulation",
         "title": "Roblox Forge: Open Generated Simulation"
+      },
+      {
+        "command": "robloxForge.commandPalette",
+        "title": "Roblox Forge: Command Palette"
       }
     ],
     "viewsContainers": {

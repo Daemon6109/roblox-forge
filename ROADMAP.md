@@ -12,7 +12,7 @@ Legend: ✅ shipped and tested · 🟡 scaffolded/partial · ⬜ not built
 - ✅ Normal generated Luau, Rojo mapping, Wally manifest, and test skeleton.
 - 🟡 Generated-file ownership rule: named user-code regions in generated Luau survive regeneration; custom attachments, source mapping, and broader safe round-trip editing are not implemented.
 - 🟡 Project Explorer ships factory, system, data-contract, networking, generated-code, and test navigation. Asset indexing and multi-factory project organization remain.
-- 🟡 Inspector/properties editor, graph drag/drop, and session undo/redo are shipped. Auto-layout, durable history/snapshots, breadcrumbs, search, and command palette coverage remain.
+- 🟡 Inspector/properties editor, graph drag/drop, session undo/redo, and a Forge command palette for primary workflows/block creation are shipped. Auto-layout, durable history/snapshots, breadcrumbs, and deeper search/refactor coverage remain.
 - ⬜ Progressive code escape hatches: expressions/rules, custom Luau attachments, source mapping, and visual-to-code navigation.
 
 ## Architecture and code generation
