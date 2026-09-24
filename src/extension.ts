@@ -2,6 +2,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { generateTowerDefense } from "./generator";
+import { ForgeCanvasProvider } from "./canvas";
 import { sampleDefinition, type TowerDefenseDefinition } from "./model";
 import { validateDefinition } from "./validation";
 
@@ -21,20 +22,24 @@ async function writeFiles(root: string, files: ReturnType<typeof generateTowerDe
   }));
 }
 
-class ForgeStatusProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
-  getTreeItem(element: vscode.TreeItem) { return element; }
-  getChildren(): vscode.TreeItem[] {
-    return ["Visual definitions are diffable", "Generated code is normal Luau", "Domain layer is Lute-ready"].map((label) => new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.None));
-  }
-}
-
 export function activate(context: vscode.ExtensionContext) {
-  context.subscriptions.push(vscode.window.registerTreeDataProvider("robloxForge.status", new ForgeStatusProvider()));
+  const canvas = new ForgeCanvasProvider();
+  context.subscriptions.push(vscode.window.registerWebviewViewProvider(ForgeCanvasProvider.viewType, canvas));
+  const refreshCanvas = async () => {
+    const root = await workspaceRoot();
+    if (!root) return canvas.setState();
+    try {
+      const definition = await readDefinition(root);
+      canvas.setState(definition, validateDefinition(definition));
+    } catch { canvas.setState(); }
+  };
+  void refreshCanvas();
   context.subscriptions.push(vscode.commands.registerCommand("robloxForge.newTowerDefenseProject", async () => {
     const root = await workspaceRoot();
     if (!root) return vscode.window.showErrorMessage("Open a folder before creating a Forge definition.");
     await fs.mkdir(path.dirname(definitionPath(root)), { recursive: true });
     await fs.writeFile(definitionPath(root), JSON.stringify(sampleDefinition(), null, 2) + "\n", "utf8");
+    await refreshCanvas();
     await vscode.window.showTextDocument(vscode.Uri.file(definitionPath(root)));
     vscode.window.showInformationMessage("Tower Defense definition created. Run Generate Luau Project when ready.");
   }));
@@ -43,6 +48,7 @@ export function activate(context: vscode.ExtensionContext) {
     if (!root) return vscode.window.showErrorMessage("Open a folder first.");
     try {
       const diagnostics = validateDefinition(await readDefinition(root));
+      canvas.setState(await readDefinition(root), diagnostics);
       if (diagnostics.length) vscode.window.showErrorMessage(`Forge validation failed: ${diagnostics.map((item) => item.message).join(" ")}`);
       else vscode.window.showInformationMessage("Forge validation passed.");
     } catch (error) { vscode.window.showErrorMessage(`Could not read visual definition: ${String(error)}`); }
@@ -52,6 +58,7 @@ export function activate(context: vscode.ExtensionContext) {
     if (!root) return vscode.window.showErrorMessage("Open a folder first.");
     try {
       await writeFiles(root, generateTowerDefense(await readDefinition(root)));
+      await refreshCanvas();
       vscode.window.showInformationMessage("Generated Luau domain, network schemas, Rojo project, Wally manifest, and domain test.");
     } catch (error) { vscode.window.showErrorMessage(`Forge generation failed: ${String(error)}`); }
   }));
