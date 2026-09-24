@@ -38,6 +38,8 @@ JECS, Lync, Lyra, Rojo, Wally, StyLua, Selene, and Lute will be integrated only 
 
 ## Roadmap
 
+See [ROADMAP.md](ROADMAP.md) for the complete delivered/partial/not-built checklist and verification standard. The public [GitHub Project](https://github.com/users/Daemon6109/projects/12) tracks implementation issues.
+
 1. Graph webview for components, systems, schemas, and pipelines.
 2. Wally package browser and pinned, compatibility-tested dependency sets.
 3. Lute/StyLua/Selene/Rojo orchestration with clickable diagnostics.
