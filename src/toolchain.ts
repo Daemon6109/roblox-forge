@@ -12,10 +12,11 @@ const tools: ToolInvocation[] = [
   { label: "StyLua formatting", command: "stylua", args: ["--check", "src", "tests"] },
   { label: "Selene static analysis", command: "selene", args: ["src", "tests"] },
   { label: "Lute type check", command: "lute", args: ["check", "src", "tests"] },
-  { label: "Lute domain tests", command: "lute", args: ["test", "tests"] }
+  { label: "Lute domain tests", command: "lute", args: ["test", "tests"] },
+  { label: "Rojo project build", command: "rojo", args: ["build", "default.project.json", "--output", ".forge/build.rbxlx"] }
 ];
 
-/** Runs only read-only checks. Dependency installation and Rojo builds stay explicit user actions. */
+/** Runs safe checks plus a generated Rojo artifact under .forge/. Dependency installation stays explicit. */
 export async function runToolchain(root: string): Promise<ToolResult[]> {
   return Promise.all(tools.map(async (tool) => {
     const command = `${tool.command} ${tool.args.join(" ")}`;

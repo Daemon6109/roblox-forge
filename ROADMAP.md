@@ -28,7 +28,7 @@ Legend: ✅ shipped and tested · 🟡 scaffolded/partial · ⬜ not built
 ## Toolchain and feedback loop
 
 - ✅ TypeScript generator tests, extension-host test, and GitHub Actions verification.
-- 🟡 Rojo configuration generation only; no `rojo build`/sync process runner.
+- 🟡 Rojo configuration generation and a real `rojo build` runner are available through Build & Test; Studio sync/serve lifecycle is still missing.
 - 🟡 Wally manifest generation only; no package search/install/update/lock validation.
 - ⬜ StyLua formatting and format diagnostics.
 - ⬜ Selene linting and clickable graph diagnostics.
@@ -52,7 +52,7 @@ Legend: ✅ shipped and tested · 🟡 scaffolded/partial · ⬜ not built
 - ✅ Extension-host test executes Create → Validate → Generate in a real VS Code runtime and checks output files.
 - 🟡 Project definitions now carry generated invariant tests (starting with state invariants) which Forge emits into the Lute suite. Canvas test authoring plus scenario, serialization, migration, network-contract, and performance tests remain.
 - ⬜ Property/fuzz testing and generated invariant suites.
-- 🟡 Build & Test: validates and regenerates the project, then runs available StyLua formatting, Selene analysis, Lute typechecking, and Lute tests with a truthful VS Code output report. Dependency installation, Rojo build, result-to-node linking, simulation dashboard, and test authoring remain incomplete.
+- 🟡 Build & Test: validates and regenerates the project, then runs available StyLua formatting, Selene analysis, Lute typechecking/tests, and a Rojo build with a truthful VS Code output report. Dependency installation, Studio sync, result-to-node linking, simulation dashboard, and canvas test authoring remain incomplete.
 - ⬜ Simulation dashboard: seeds, replays, batch runs, charts, performance distributions, failed invariants.
 - ⬜ Visual debugging: timeline, event traces, entity inspector, component diffs, network/save traces, and system order.
 
