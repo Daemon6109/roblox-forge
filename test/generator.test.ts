@@ -8,6 +8,7 @@ describe("Tower Defense generator", () => {
     const files = generateTowerDefense(sampleDefinition());
     expect(files.map((file) => file.path)).toEqual(expect.arrayContaining(["wally.toml", "default.project.json", "src/shared/domain/Simulation.luau", "src/shared/schemas/Network.luau"]));
     expect(files.find((file) => file.path === "src/shared/schemas/Network.luau")?.content).toContain("export type PlaceTower");
+    expect(files.find((file) => file.path === "src/shared/schemas/GameSchema.luau")?.content).toContain("export type Health");
   });
   it("rejects invalid message names before generation", () => {
     const definition = sampleDefinition();

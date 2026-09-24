@@ -1,4 +1,6 @@
 export type Field = { name: string; type: "string" | "number" | "boolean" | "Vector3" | "u16" };
+export type SchemaKind = "component" | "resource" | "event";
+export type DataSchema = { id: string; name: string; kind: SchemaKind; fields: Field[] };
 
 export type NetworkMessage = {
   name: string;
@@ -21,6 +23,7 @@ export type TowerDefenseDefinition = {
   messages: NetworkMessage[];
   flow: SimulationBlock[];
   connections: FlowConnection[];
+  schemas: DataSchema[];
 };
 
 export type CanvasEdit =
@@ -38,11 +41,16 @@ export type CanvasEdit =
   | { kind: "setBlockConfig"; value: string; key: string; amount: number }
   | { kind: "setBlockCode"; value: string; code: string }
   | { kind: "connectBlocks"; from: string; to: string }
-  | { kind: "disconnectBlock"; value: string };
+  | { kind: "disconnectBlock"; value: string }
+  | { kind: "addSchema"; schemaKind: SchemaKind }
+  | { kind: "removeSchema"; value: string }
+  | { kind: "setSchemaName"; value: string; name: string }
+  | { kind: "addSchemaField"; value: string };
 
 const topologies = new Set<TowerDefenseDefinition["topology"]>(["spline", "graph", "lanes"]);
 const economies = new Set<TowerDefenseDefinition["economy"]>(["shared", "per-player"]);
 const targetModes = new Set<TowerDefenseDefinition["targeting"][number]>(["first", "last", "strongest", "weakest", "nearest"]);
+const schemaKinds = new Set<SchemaKind>(["component", "resource", "event"]);
 const blockKinds = new Set<SimulationBlockKind>(["spawnWave", "moveEnemies", "acquireTargets", "attackTargets", "applyDamage", "cleanupDead", "customSystem"]);
 const blockDefaults: Record<SimulationBlockKind, { label: string; config: Record<string, number> }> = {
   spawnWave: { label: "Spawn Wave", config: { waveIncrement: 1 } },
@@ -63,10 +71,10 @@ const defaultFlow = (): SimulationBlock[] => [
   { id: "cleanup-dead", kind: "cleanupDead", enabled: true, position: { x: 260, y: 710 }, ...structuredClone(blockDefaults.cleanupDead) }
 ];
 
-export function hydrateDefinition(value: Omit<TowerDefenseDefinition, "flow" | "connections"> & Partial<Pick<TowerDefenseDefinition, "flow" | "connections">>): TowerDefenseDefinition {
+export function hydrateDefinition(value: Omit<TowerDefenseDefinition, "flow" | "connections" | "schemas"> & Partial<Pick<TowerDefenseDefinition, "flow" | "connections" | "schemas">>): TowerDefenseDefinition {
   const flow = value.flow?.length ? value.flow.map((block, index) => ({ ...structuredClone(blockDefaults[block.kind]), ...block, position: block.position ?? { x: 260, y: 60 + index * 130 }, config: { ...blockDefaults[block.kind].config, ...block.config } })) : defaultFlow();
   const connections = value.connections ?? flow.slice(1).map((block, index) => ({ from: flow[index].id, to: block.id }));
-  return { ...value, flow, connections };
+  return { ...value, flow, connections, schemas: value.schemas ?? defaultSchemas() };
 }
 
 function nextMessageName(messages: NetworkMessage[]) {
@@ -158,6 +166,29 @@ export function applyCanvasEdit(definition: TowerDefenseDefinition, edit: Canvas
     case "disconnectBlock":
       next.connections = next.connections.filter((connection) => connection.from !== edit.value);
       break;
+    case "addSchema": {
+      const schemaKind = edit.schemaKind ?? (edit as unknown as { value?: SchemaKind }).value;
+      if (!schemaKind || !schemaKinds.has(schemaKind)) throw new Error("Unsupported schema kind.");
+      const count = next.schemas.filter((schema) => schema.kind === schemaKind).length + 1;
+      const title = schemaKind[0].toUpperCase() + schemaKind.slice(1);
+      next.schemas.push({ id: `${schemaKind}-${count}`, name: `${title}${count}`, kind: schemaKind, fields: [{ name: "value", type: "number" }] });
+      break;
+    }
+    case "removeSchema":
+      next.schemas = next.schemas.filter((schema) => schema.id !== edit.value);
+      break;
+    case "setSchemaName": {
+      const schema = next.schemas.find((candidate) => candidate.id === edit.value);
+      if (!schema || !/^[A-Z][A-Za-z0-9]*$/.test(edit.name)) throw new Error("Schema names must be PascalCase.");
+      schema.name = edit.name;
+      break;
+    }
+    case "addSchemaField": {
+      const schema = next.schemas.find((candidate) => candidate.id === edit.value);
+      if (!schema) throw new Error("Schema was not found.");
+      schema.fields.push({ name: `value${schema.fields.length + 1}`, type: "number" });
+      break;
+    }
   }
   return next;
 }
@@ -173,6 +204,15 @@ export const sampleDefinition = (): TowerDefenseDefinition => {
     targeting: ["first", "strongest", "nearest"],
     messages: [{ name: "PlaceTower", direction: "clientToServer", fields: [{ name: "towerId", type: "string" }, { name: "position", type: "Vector3" }] }],
     flow,
-    connections: flow.slice(1).map((block, index) => ({ from: flow[index].id, to: block.id }))
+    connections: flow.slice(1).map((block, index) => ({ from: flow[index].id, to: block.id })),
+    schemas: defaultSchemas()
   };
 };
+
+function defaultSchemas(): DataSchema[] {
+  return [
+    { id: "health", name: "Health", kind: "component", fields: [{ name: "current", type: "number" }, { name: "maximum", type: "number" }] },
+    { id: "game-state", name: "GameState", kind: "resource", fields: [{ name: "wave", type: "number" }, { name: "lives", type: "number" }] },
+    { id: "tower-placed", name: "TowerPlaced", kind: "event", fields: [{ name: "towerId", type: "string" }, { name: "position", type: "Vector3" }] }
+  ];
+}

@@ -22,4 +22,9 @@ describe("visual definition edits", () => {
     const updated = applyCanvasEdit(withBlock, { kind: "setBlockCode", value: custom.id, code: "\treturn state" });
     expect(updated.flow.at(-1)?.code).toBe("\treturn state");
   });
+
+  it("adds a reusable visual component schema", () => {
+    const updated = applyCanvasEdit(sampleDefinition(), { kind: "addSchema", schemaKind: "component" });
+    expect(updated.schemas.at(-1)).toMatchObject({ kind: "component", name: "Component2" });
+  });
 });

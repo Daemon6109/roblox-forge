@@ -14,6 +14,13 @@ export function validateDefinition(definition: TowerDefenseDefinition): Diagnost
     blockIds.add(block.id);
   }
   graphDiagnostics(definition).forEach((message) => diagnostics.push({ path: "connections", message }));
+  const schemas = new Set<string>();
+  for (const schema of definition.schemas) {
+    if (!/^[A-Z][A-Za-z0-9]*$/.test(schema.name)) diagnostics.push({ path: `schemas.${schema.id}`, message: "Schema names must be PascalCase." });
+    if (schemas.has(schema.name)) diagnostics.push({ path: `schemas.${schema.id}`, message: "Schema names must be unique." });
+    schemas.add(schema.name);
+    if (!schema.fields.length) diagnostics.push({ path: `schemas.${schema.id}`, message: "Schemas need at least one field." });
+  }
   const seenMessages = new Set<string>();
   for (const message of definition.messages) {
     if (!/^[A-Z][A-Za-z0-9]*$/.test(message.name)) diagnostics.push({ path: `messages.${message.name}`, message: "Message names must be PascalCase." });
