@@ -50,3 +50,6 @@ See [ROADMAP.md](ROADMAP.md) for the complete delivered/partial/not-built checkl
 ## Quality gate
 
 Every push runs `npm ci`, `npm run package`, and a real VS Code Extension Development Host test in GitHub Actions. The integration test executes the three commands against a temporary workspace, then verifies the generated Luau and Rojo project files. This follows VS Code's official extension-host test setup. [VS Code testing docs](https://code.visualstudio.com/api/working-with-extensions/testing-extension)
+## Download test builds
+
+Every push to `main` is verified, packaged as a `.vsix`, and published as a GitHub prerelease. Download the newest asset from [Releases](https://github.com/Daemon6109/roblox-forge/releases), then install it in VS Code with **Extensions: Install from VSIX...**.

@@ -1,0 +1,50 @@
+name: Build and release VSIX
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Verify, package, and publish test build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify extension
+        run: npm run package
+
+      - name: Run VS Code extension-host test
+        run: xvfb-run -a npm run test:vscode
+
+      - name: Package VS Code extension
+        run: npx vsce package --out "dist/roblox-forge-${{ github.run_number }}.vsix"
+
+      - name: Upload downloadable build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: roblox-forge-vsix-${{ github.run_number }}
+          path: dist/*.vsix
+          if-no-files-found: error
+
+      - name: Create GitHub prerelease
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Roblox Forge test build ${{ github.run_number }}
+          prerelease: true
+          generate_release_notes: true
+          files: dist/*.vsix

@@ -32,6 +32,17 @@ describe("Tower Defense generator", () => {
     expect(manifest).toContain('Lyra = "paradoxum-games/lyra@0.1.0"');
   });
 
+  it("generates a reusable routine called by a graph block", () => {
+    const definition = sampleDefinition();
+    definition.routines = [{ id: "routine-award", name: "AwardBonus", steps: [{ field: "currency", operation: "add", amount: 25, operand: { source: "literal", amount: 25 } }] }];
+    definition.flow = [{ ...definition.flow[0], id: "run-award", kind: "callRoutine", label: "Award bonus", config: {}, bindings: [], routineId: "routine-award" }];
+    definition.connections = [];
+    const simulation = generateTowerDefense(definition).find((file) => file.path === "src/shared/domain/Simulation.luau")?.content ?? "";
+    expect(simulation).toContain("local function runAwardBonus");
+    expect(simulation).toContain("return runAwardBonus(state, context)");
+    expect(simulation).toContain("state.currency + 25");
+  });
+
   it("turns enabled visual blocks into a concrete Luau execution pipeline", () => {
     const definition = sampleDefinition();
     definition.flow = [{ ...definition.flow[0], enabled: true }, { ...definition.flow[5], enabled: false }];

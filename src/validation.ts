@@ -63,5 +63,18 @@ export function validateDefinition(definition: TowerDefenseDefinition): Diagnost
     packageAliases.add(item.alias);
     if (!/^[A-Za-z0-9_-]+\/[A-Za-z0-9_.-]+@[^\s@]+$/.test(item.spec)) diagnostics.push({ path: `packages.${item.id}`, message: "Package specs must use Wally's scope/name@version form." });
   }
+  const routineIds = new Set<string>();
+  const routineNames = new Set<string>();
+  for (const routine of definition.routines) {
+    if (!routine.id || routineIds.has(routine.id)) diagnostics.push({ path: `routines.${routine.id}`, message: "Routine IDs must be unique." });
+    routineIds.add(routine.id);
+    if (!/^[A-Z][A-Za-z0-9]*$/.test(routine.name)) diagnostics.push({ path: `routines.${routine.id}`, message: "Routine names must be PascalCase." });
+    if (routineNames.has(routine.name)) diagnostics.push({ path: `routines.${routine.id}`, message: "Routine names must be unique." });
+    routineNames.add(routine.name);
+    if (!routine.steps.length) diagnostics.push({ path: `routines.${routine.id}`, message: "Routines need at least one visual state step." });
+  }
+  for (const block of definition.flow.filter((block) => block.kind === "callRoutine" && block.enabled)) {
+    if (!block.routineId || !routineIds.has(block.routineId)) diagnostics.push({ path: `flow.${block.id}`, message: "Routine blocks must select an existing routine." });
+  }
   return diagnostics;
 }

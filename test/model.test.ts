@@ -43,6 +43,15 @@ describe("visual definition edits", () => {
     expect(updated.packages).toEqual([{ id: item.id, alias: "Jecs", spec: "ukendio/jecs@0.5.0", realm: "server" }]);
   });
 
+  it("creates reusable visual routines and assigns them to call blocks", () => {
+    const withRoutine = applyCanvasEdit(sampleDefinition(), { kind: "addRoutine" });
+    const routine = withRoutine.routines[0];
+    const withCall = applyCanvasEdit(withRoutine, { kind: "addBlock", value: "callRoutine" });
+    const call = withCall.flow.at(-1)!;
+    const updated = applyCanvasEdit(withCall, { kind: "setBlockRoutine", value: call.id, routineId: routine.id });
+    expect(updated.flow.at(-1)).toMatchObject({ kind: "callRoutine", routineId: routine.id });
+  });
+
   it("stores custom Luau only on a Custom System block", () => {
     const withBlock = applyCanvasEdit(sampleDefinition(), { kind: "addBlock", value: "customSystem" });
     const custom = withBlock.flow.at(-1)!;

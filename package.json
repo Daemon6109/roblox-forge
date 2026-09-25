@@ -103,7 +103,8 @@
     "test": "npm run test:unit",
     "test:unit": "vitest run",
     "test:vscode": "npm run build && vscode-test",
-    "package": "npm run check && npm run test:unit && npm run build"
+    "package": "npm run check && npm run test:unit && npm run build",
+    "package:vsix": "npm run package && vsce package"
   },
   "devDependencies": {
     "@types/node": "^22.10.1",

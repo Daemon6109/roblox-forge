@@ -10,7 +10,7 @@ export type NetworkMessage = {
 export type PackageRealm = "shared" | "server" | "dev";
 export type PackageDependency = { id: string; alias: string; spec: string; realm: PackageRealm };
 
-export type SimulationBlockKind = "spawnWave" | "moveEnemies" | "acquireTargets" | "attackTargets" | "applyDamage" | "cleanupDead" | "mutateState" | "condition" | "customSystem";
+export type SimulationBlockKind = "spawnWave" | "moveEnemies" | "acquireTargets" | "attackTargets" | "applyDamage" | "cleanupDead" | "mutateState" | "condition" | "callRoutine" | "customSystem";
 export type GraphPosition = { x: number; y: number };
 export type FlowPort = "next" | "true" | "false";
 export type FlowConnection = { from: string; to: string; fromPort?: FlowPort };
@@ -19,7 +19,8 @@ export type StateOperand = { source: "literal"; amount: number } | { source: "st
 export type StateMutation = { field: StateField; operation: "add" | "set"; amount: number; operand?: StateOperand };
 export type StateCondition = { field: StateField; comparison: ">=" | ">" | "<=" | "<" | "=="; amount: number };
 export type VisualTest = { id: string; name: string; condition: StateCondition };
-export type SimulationBlock = { id: string; kind: SimulationBlockKind; enabled: boolean; label: string; position: GraphPosition; config: Record<string, number>; bindings: string[]; stateMutation?: StateMutation; stateCondition?: StateCondition; code?: string };
+export type ReusableRoutine = { id: string; name: string; steps: StateMutation[] };
+export type SimulationBlock = { id: string; kind: SimulationBlockKind; enabled: boolean; label: string; position: GraphPosition; config: Record<string, number>; bindings: string[]; routineId?: string; stateMutation?: StateMutation; stateCondition?: StateCondition; code?: string };
 
 export type TowerDefenseDefinition = {
   version: 1;
@@ -30,6 +31,7 @@ export type TowerDefenseDefinition = {
   targeting: Array<"first" | "last" | "strongest" | "weakest" | "nearest">;
   messages: NetworkMessage[];
   packages: PackageDependency[];
+  routines: ReusableRoutine[];
   flow: SimulationBlock[];
   connections: FlowConnection[];
   schemas: DataSchema[];
@@ -55,6 +57,12 @@ export type CanvasEdit =
   | { kind: "addTest" }
   | { kind: "removeTest"; value: string }
   | { kind: "updateTest"; value: string; test: VisualTest }
+  | { kind: "addRoutine" }
+  | { kind: "removeRoutine"; value: string }
+  | { kind: "updateRoutine"; value: string; routine: ReusableRoutine }
+  | { kind: "addRoutineStep"; value: string }
+  | { kind: "removeRoutineStep"; value: string; stepIndex: number }
+  | { kind: "setRoutineStep"; value: string; stepIndex: number; mutation: StateMutation }
   | { kind: "addBlock"; value: SimulationBlockKind }
   | { kind: "toggleBlock"; value: string }
   | { kind: "removeBlock"; value: string }
@@ -65,6 +73,7 @@ export type CanvasEdit =
   | { kind: "setStateMutation"; value: string; mutation: StateMutation }
   | { kind: "setStateCondition"; value: string; condition: StateCondition }
   | { kind: "setBlockCode"; value: string; code: string }
+  | { kind: "setBlockRoutine"; value: string; routineId: string }
   | { kind: "toggleBlockBinding"; value: string; schemaId: string }
   | { kind: "connectBlocks"; from: string; to: string; fromPort?: FlowPort }
   | { kind: "disconnectBlock"; value: string }
@@ -84,7 +93,7 @@ const fieldTypes = new Set<Field["type"]>(["string", "number", "boolean", "Vecto
 const stateFields = new Set<StateField>(["wave", "currency", "lives"]);
 const packageRealms = new Set<PackageRealm>(["shared", "server", "dev"]);
 const flowPorts = new Set<FlowPort>(["next", "true", "false"]);
-const blockKinds = new Set<SimulationBlockKind>(["spawnWave", "moveEnemies", "acquireTargets", "attackTargets", "applyDamage", "cleanupDead", "mutateState", "condition", "customSystem"]);
+const blockKinds = new Set<SimulationBlockKind>(["spawnWave", "moveEnemies", "acquireTargets", "attackTargets", "applyDamage", "cleanupDead", "mutateState", "condition", "callRoutine", "customSystem"]);
 const blockDefaults: Record<SimulationBlockKind, { label: string; config: Record<string, number> }> = {
   spawnWave: { label: "Spawn Wave", config: { waveIncrement: 1 } },
   moveEnemies: { label: "Move Enemies", config: { speed: 1 } },
@@ -94,6 +103,7 @@ const blockDefaults: Record<SimulationBlockKind, { label: string; config: Record
   cleanupDead: { label: "Cleanup Dead", config: { threshold: 0 } },
   mutateState: { label: "Modify Game State", config: {} },
   condition: { label: "If Game State", config: {} },
+  callRoutine: { label: "Run Routine", config: {} },
   customSystem: { label: "Custom System", config: {} }
 };
 
@@ -106,10 +116,10 @@ const defaultFlow = (): SimulationBlock[] => [
   { id: "cleanup-dead", kind: "cleanupDead", enabled: true, position: { x: 260, y: 710 }, bindings: ["health"], ...structuredClone(blockDefaults.cleanupDead) }
 ];
 
-export function hydrateDefinition(value: Omit<TowerDefenseDefinition, "flow" | "connections" | "schemas" | "tests" | "packages"> & Partial<Pick<TowerDefenseDefinition, "flow" | "connections" | "schemas" | "tests" | "packages">>): TowerDefenseDefinition {
+export function hydrateDefinition(value: Omit<TowerDefenseDefinition, "flow" | "connections" | "schemas" | "tests" | "packages" | "routines"> & Partial<Pick<TowerDefenseDefinition, "flow" | "connections" | "schemas" | "tests" | "packages" | "routines">>): TowerDefenseDefinition {
   const flow = value.flow?.length ? value.flow.map((block, index) => ({ ...structuredClone(blockDefaults[block.kind]), ...block, bindings: block.bindings ?? [], stateMutation: block.kind === "mutateState" ? { field: "currency" as StateField, operation: "add" as const, amount: 10, ...block.stateMutation, operand: block.stateMutation?.operand ?? { source: "literal" as const, amount: block.stateMutation?.amount ?? 10 } } : block.stateMutation, stateCondition: block.kind === "condition" ? block.stateCondition ?? { field: "lives", comparison: ">", amount: 0 } : block.stateCondition, position: block.position ?? { x: 260, y: 60 + index * 130 }, config: { ...blockDefaults[block.kind].config, ...block.config } })) : defaultFlow();
   const connections = value.connections ?? flow.slice(1).map((block, index) => ({ from: flow[index].id, to: block.id }));
-  return { ...value, flow, connections, schemas: value.schemas ?? defaultSchemas(), tests: value.tests ?? defaultTests(), packages: value.packages ?? [] };
+  return { ...value, flow, connections, schemas: value.schemas ?? defaultSchemas(), tests: value.tests ?? defaultTests(), packages: value.packages ?? [], routines: value.routines ?? [] };
 }
 
 function nextMessageName(messages: NetworkMessage[]) {
@@ -130,6 +140,17 @@ function nextPackageId(packages: PackageDependency[]) {
   let suffix = packages.length + 1;
   while (packages.some((item) => item.id === `package-${suffix}`)) suffix++;
   return `package-${suffix}`;
+}
+
+function nextRoutineId(routines: ReusableRoutine[]) {
+  let suffix = routines.length + 1;
+  while (routines.some((routine) => routine.id === `routine-${suffix}`)) suffix++;
+  return `routine-${suffix}`;
+}
+
+function validMutation(mutation: StateMutation) {
+  const operand = mutation.operand ?? { source: "literal" as const, amount: mutation.amount };
+  return stateFields.has(mutation.field) && ["add", "set"].includes(mutation.operation) && Number.isFinite(mutation.amount) && (operand.source === "literal" ? Number.isFinite(operand.amount) : stateFields.has(operand.field));
 }
 
 /** Applies only whitelisted visual-canvas changes; never blindly merges webview input. */
@@ -237,10 +258,45 @@ export function applyCanvasEdit(definition: TowerDefenseDefinition, edit: Canvas
       next.tests[index] = { id: edit.value, name: test.name.trim(), condition: structuredClone(test.condition) };
       break;
     }
+    case "addRoutine":
+      next.routines.push({ id: nextRoutineId(next.routines), name: `Routine${next.routines.length + 1}`, steps: [{ field: "currency", operation: "add", amount: 10, operand: { source: "literal", amount: 10 } }] });
+      break;
+    case "removeRoutine":
+      if (!next.routines.some((routine) => routine.id === edit.value)) throw new Error("Routine was not found.");
+      next.routines = next.routines.filter((routine) => routine.id !== edit.value);
+      next.flow.forEach((block) => { if (block.routineId === edit.value) block.routineId = undefined; });
+      break;
+    case "updateRoutine": {
+      const index = next.routines.findIndex((routine) => routine.id === edit.value);
+      const routine = edit.routine;
+      const validName = /^[A-Z][A-Za-z0-9]*$/.test(routine.name);
+      const uniqueName = !next.routines.some((candidate, candidateIndex) => candidateIndex !== index && candidate.name === routine.name);
+      if (index < 0 || !validName || !uniqueName || !routine.steps.length || !routine.steps.every(validMutation)) throw new Error("Routines need a unique PascalCase name and at least one valid visual state step.");
+      next.routines[index] = { id: edit.value, name: routine.name, steps: structuredClone(routine.steps) };
+      break;
+    }
+    case "addRoutineStep": {
+      const routine = next.routines.find((candidate) => candidate.id === edit.value);
+      if (!routine) throw new Error("Routine was not found.");
+      routine.steps.push({ field: "currency", operation: "add", amount: 10, operand: { source: "literal", amount: 10 } });
+      break;
+    }
+    case "removeRoutineStep": {
+      const routine = next.routines.find((candidate) => candidate.id === edit.value);
+      if (!routine || !routine.steps[edit.stepIndex] || routine.steps.length === 1) throw new Error("Routines need at least one state step.");
+      routine.steps.splice(edit.stepIndex, 1);
+      break;
+    }
+    case "setRoutineStep": {
+      const routine = next.routines.find((candidate) => candidate.id === edit.value);
+      if (!routine || !routine.steps[edit.stepIndex] || !validMutation(edit.mutation)) throw new Error("Invalid routine state step.");
+      routine.steps[edit.stepIndex] = structuredClone(edit.mutation);
+      break;
+    }
     case "addBlock": {
       if (!blockKinds.has(edit.value)) throw new Error("Unsupported simulation block.");
       const number = next.flow.filter((block) => block.kind === edit.value).length + 1;
-      next.flow.push({ id: `${edit.value}-${number}`, kind: edit.value, enabled: true, bindings: [], stateMutation: edit.value === "mutateState" ? { field: "currency", operation: "add", amount: 10, operand: { source: "literal", amount: 10 } } : undefined, stateCondition: edit.value === "condition" ? { field: "lives", comparison: ">", amount: 0 } : undefined, position: { x: 480, y: 100 + number * 45 }, ...structuredClone(blockDefaults[edit.value]) });
+      next.flow.push({ id: `${edit.value}-${number}`, kind: edit.value, enabled: true, bindings: [], routineId: edit.value === "callRoutine" ? next.routines[0]?.id : undefined, stateMutation: edit.value === "mutateState" ? { field: "currency", operation: "add", amount: 10, operand: { source: "literal", amount: 10 } } : undefined, stateCondition: edit.value === "condition" ? { field: "lives", comparison: ">", amount: 0 } : undefined, position: { x: 480, y: 100 + number * 45 }, ...structuredClone(blockDefaults[edit.value]) });
       break;
     }
     case "toggleBlock": {
@@ -296,6 +352,12 @@ export function applyCanvasEdit(definition: TowerDefenseDefinition, edit: Canvas
       if (!block || block.kind !== "customSystem") throw new Error("Only Custom System blocks accept custom Luau.");
       if (edit.code.length > 20_000) throw new Error("Custom system code is limited to 20,000 characters.");
       block.code = edit.code;
+      break;
+    }
+    case "setBlockRoutine": {
+      const block = next.flow.find((candidate) => candidate.id === edit.value);
+      if (!block || block.kind !== "callRoutine" || !next.routines.some((routine) => routine.id === edit.routineId)) throw new Error("Choose an existing routine for this block.");
+      block.routineId = edit.routineId;
       break;
     }
     case "toggleBlockBinding": {
@@ -374,6 +436,7 @@ export const sampleDefinition = (): TowerDefenseDefinition => {
     targeting: ["first", "strongest", "nearest"],
     messages: [{ name: "PlaceTower", direction: "clientToServer", fields: [{ name: "towerId", type: "string" }, { name: "position", type: "Vector3" }] }],
     packages: [],
+    routines: [],
     flow,
     connections: flow.slice(1).map((block, index) => ({ from: flow[index].id, to: block.id })),
     schemas: defaultSchemas()

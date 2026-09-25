@@ -23,11 +23,12 @@ Legend: ✅ shipped and tested · 🟡 scaffolded/partial · ⬜ not built
 - 🟡 Tower Defense factory records topology, economy, targeting, and messages.
 - ⬜ Component/entity/archetype/system/query/schedule authoring.
 - ⬜ Roblox client/server adapter generation: Instances, Players, remotes, presentation, input, sounds, DataStores.
-- ⬜ Factory composition, dependencies, extension points, conflict detection, extraction, and factory authoring.
+- 🟡 Reusable pure routines are authored from visual state steps and callable from the systems graph. Nested arbitrary subgraphs, factory composition, dependencies, extension points, conflict detection, extraction, and factory authoring remain.
 
 ## Toolchain and feedback loop
 
 - ✅ TypeScript generator tests, extension-host test, and GitHub Actions verification.
+- ✅ Every `main` commit now produces a verified `.vsix` artifact and a downloadable GitHub prerelease.
 - 🟡 Rojo configuration generation and a real `rojo build` runner are available through Build & Test; Studio sync/serve lifecycle is still missing.
 - 🟡 Wally manifest generation, visual add/remove/update package declarations with Shared/Server/Development realms, and an explicit Wally install command that writes normal package/lock state. Package search and lock validation remain.
 - ⬜ StyLua formatting and format diagnostics.
