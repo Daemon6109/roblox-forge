@@ -43,7 +43,7 @@ Legend: ✅ shipped and tested · 🟡 scaffolded/partial · ⬜ not built
 - ⬜ Lync integration: actual typed remotes, serialization, reliability configuration, and visible request/validation/simulation/replication pipelines.
 - ⬜ Lyra integration: player data schemas, defaults, validation, migrations, generated fixtures, load/unload wiring, and migration tests.
 - 🟡 Tower Defense factory: project wizard, configurable simulation block pipeline, visual authored tower/enemy catalogs, and deterministic authored wave schedule generation.
-- 🟡 Tower Defense deep factory: visual enemy/tower catalogs, authored waves, pure first/last/strongest/weakest/nearest targeting, deterministic placement/bounds validation, range/damage combat resolution, and a deterministic wave simulator are generated now. Projectiles, path progress, visual placement authoring, upgrades, effects, replication, procedural waves, and the 100-wave dashboard remain.
+- 🟡 Tower Defense deep factory: visual enemy/tower catalogs, authored waves, pure first/last/strongest/weakest/nearest targeting, visual placement/bounds rules, range/damage combat resolution, and a deterministic wave simulator are generated now. Projectiles, path progress authoring, upgrades, effects, replication, procedural waves, and the 100-wave dashboard remain.
 - ⬜ Grid tactics factory: square/hex grids, turn order, movement, terrain, combat, effects, objectives, AI, replayable deterministic simulations.
 - ⬜ Lower-level factories: inventory, equipment, abilities, cooldowns, status effects, combat, NPC AI, quests, economy, shops, crafting, rounds, matchmaking, progression, achievements, save data, replication, and test factories.
 
