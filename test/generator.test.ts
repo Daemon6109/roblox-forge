@@ -59,6 +59,7 @@ describe("Tower Defense generator", () => {
     expect(files.find((file) => file.path === "src/shared/domain/Cooldowns.luau")?.content).toContain("function Cooldowns.consume");
     expect(files.find((file) => file.path === "src/shared/domain/Projectiles.luau")?.content).toContain("function Projectiles.advance");
     expect(files.find((file) => file.path === "src/shared/domain/Upgrades.luau")?.content).toContain("function Upgrades.nextStep");
+    expect(files.find((file) => file.path === "src/shared/domain/ProceduralWaves.luau")?.content).toContain("function ProceduralWaves.create");
     expect(files.find((file) => file.path === "tests/domain/Simulation.spec.luau")?.content).toContain("simulates authored waves without Studio");
     expect(files.find((file) => file.path === "tests/domain/Simulation.spec.luau")?.content).toContain("rejects overlapping tower placement");
     expect(files.find((file) => file.path === "tests/domain/Simulation.spec.luau")?.content).toContain("Authored waves do not leak");
