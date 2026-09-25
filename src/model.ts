@@ -20,6 +20,9 @@ export type StateMutation = { field: StateField; operation: "add" | "set"; amoun
 export type StateCondition = { field: StateField; comparison: ">=" | ">" | "<=" | "<" | "=="; amount: number };
 export type VisualTest = { id: string; name: string; condition: StateCondition };
 export type ReusableRoutine = { id: string; name: string; steps: StateMutation[] };
+export type TowerArchetype = { id: string; name: string; cost: number; damage: number; range: number; cooldown: number; targeting: TowerDefenseDefinition["targeting"][number] };
+export type EnemyArchetype = { id: string; name: string; health: number; speed: number; reward: number };
+export type AuthoredWave = { id: string; wave: number; enemyId: string; count: number; interval: number };
 export type SimulationBlock = { id: string; kind: SimulationBlockKind; enabled: boolean; label: string; position: GraphPosition; config: Record<string, number>; bindings: string[]; routineId?: string; stateMutation?: StateMutation; stateCondition?: StateCondition; code?: string };
 
 export type TowerDefenseDefinition = {
@@ -32,6 +35,9 @@ export type TowerDefenseDefinition = {
   messages: NetworkMessage[];
   packages: PackageDependency[];
   routines: ReusableRoutine[];
+  towers: TowerArchetype[];
+  enemies: EnemyArchetype[];
+  waves: AuthoredWave[];
   flow: SimulationBlock[];
   connections: FlowConnection[];
   schemas: DataSchema[];
@@ -63,6 +69,15 @@ export type CanvasEdit =
   | { kind: "addRoutineStep"; value: string }
   | { kind: "removeRoutineStep"; value: string; stepIndex: number }
   | { kind: "setRoutineStep"; value: string; stepIndex: number; mutation: StateMutation }
+  | { kind: "addTower" }
+  | { kind: "removeTower"; value: string }
+  | { kind: "updateTower"; value: string; tower: TowerArchetype }
+  | { kind: "addEnemy" }
+  | { kind: "removeEnemy"; value: string }
+  | { kind: "updateEnemy"; value: string; enemy: EnemyArchetype }
+  | { kind: "addWave" }
+  | { kind: "removeWave"; value: string }
+  | { kind: "updateWave"; value: string; wave: AuthoredWave }
   | { kind: "addBlock"; value: SimulationBlockKind }
   | { kind: "toggleBlock"; value: string }
   | { kind: "removeBlock"; value: string }
@@ -116,10 +131,10 @@ const defaultFlow = (): SimulationBlock[] => [
   { id: "cleanup-dead", kind: "cleanupDead", enabled: true, position: { x: 260, y: 710 }, bindings: ["health"], ...structuredClone(blockDefaults.cleanupDead) }
 ];
 
-export function hydrateDefinition(value: Omit<TowerDefenseDefinition, "flow" | "connections" | "schemas" | "tests" | "packages" | "routines"> & Partial<Pick<TowerDefenseDefinition, "flow" | "connections" | "schemas" | "tests" | "packages" | "routines">>): TowerDefenseDefinition {
+export function hydrateDefinition(value: Omit<TowerDefenseDefinition, "flow" | "connections" | "schemas" | "tests" | "packages" | "routines" | "towers" | "enemies" | "waves"> & Partial<Pick<TowerDefenseDefinition, "flow" | "connections" | "schemas" | "tests" | "packages" | "routines" | "towers" | "enemies" | "waves">>): TowerDefenseDefinition {
   const flow = value.flow?.length ? value.flow.map((block, index) => ({ ...structuredClone(blockDefaults[block.kind]), ...block, bindings: block.bindings ?? [], stateMutation: block.kind === "mutateState" ? { field: "currency" as StateField, operation: "add" as const, amount: 10, ...block.stateMutation, operand: block.stateMutation?.operand ?? { source: "literal" as const, amount: block.stateMutation?.amount ?? 10 } } : block.stateMutation, stateCondition: block.kind === "condition" ? block.stateCondition ?? { field: "lives", comparison: ">", amount: 0 } : block.stateCondition, position: block.position ?? { x: 260, y: 60 + index * 130 }, config: { ...blockDefaults[block.kind].config, ...block.config } })) : defaultFlow();
   const connections = value.connections ?? flow.slice(1).map((block, index) => ({ from: flow[index].id, to: block.id }));
-  return { ...value, flow, connections, schemas: value.schemas ?? defaultSchemas(), tests: value.tests ?? defaultTests(), packages: value.packages ?? [], routines: value.routines ?? [] };
+  return { ...value, flow, connections, schemas: value.schemas ?? defaultSchemas(), tests: value.tests ?? defaultTests(), packages: value.packages ?? [], routines: value.routines ?? [], towers: value.towers ?? defaultTowers(), enemies: value.enemies ?? defaultEnemies(), waves: value.waves ?? defaultWaves() };
 }
 
 function nextMessageName(messages: NetworkMessage[]) {
@@ -146,6 +161,12 @@ function nextRoutineId(routines: ReusableRoutine[]) {
   let suffix = routines.length + 1;
   while (routines.some((routine) => routine.id === `routine-${suffix}`)) suffix++;
   return `routine-${suffix}`;
+}
+
+function nextId(prefix: string, values: Array<{ id: string }>) {
+  let suffix = values.length + 1;
+  while (values.some((value) => value.id === `${prefix}-${suffix}`)) suffix++;
+  return `${prefix}-${suffix}`;
 }
 
 function validMutation(mutation: StateMutation) {
@@ -293,6 +314,54 @@ export function applyCanvasEdit(definition: TowerDefenseDefinition, edit: Canvas
       routine.steps[edit.stepIndex] = structuredClone(edit.mutation);
       break;
     }
+    case "addTower":
+      next.towers.push({ id: nextId("tower", next.towers), name: `Tower${next.towers.length + 1}`, cost: 250, damage: 10, range: 15, cooldown: 1, targeting: "first" });
+      break;
+    case "removeTower":
+      if (!next.towers.some((tower) => tower.id === edit.value)) throw new Error("Tower was not found.");
+      next.towers = next.towers.filter((tower) => tower.id !== edit.value);
+      break;
+    case "updateTower": {
+      const index = next.towers.findIndex((tower) => tower.id === edit.value);
+      const tower = edit.tower;
+      const uniqueName = !next.towers.some((candidate, candidateIndex) => candidateIndex !== index && candidate.name === tower.name);
+      if (index < 0 || !/^[A-Z][A-Za-z0-9]*$/.test(tower.name) || !uniqueName || ![tower.cost, tower.damage, tower.range, tower.cooldown].every((value) => Number.isFinite(value) && value > 0) || !targetModes.has(tower.targeting)) throw new Error("Towers need a unique PascalCase name and positive combat values.");
+      next.towers[index] = { ...tower, id: edit.value };
+      break;
+    }
+    case "addEnemy":
+      next.enemies.push({ id: nextId("enemy", next.enemies), name: `Enemy${next.enemies.length + 1}`, health: 100, speed: 1, reward: 10 });
+      break;
+    case "removeEnemy":
+      if (!next.enemies.some((enemy) => enemy.id === edit.value)) throw new Error("Enemy was not found.");
+      next.enemies = next.enemies.filter((enemy) => enemy.id !== edit.value);
+      next.waves = next.waves.filter((wave) => wave.enemyId !== edit.value);
+      break;
+    case "updateEnemy": {
+      const index = next.enemies.findIndex((enemy) => enemy.id === edit.value);
+      const enemy = edit.enemy;
+      const uniqueName = !next.enemies.some((candidate, candidateIndex) => candidateIndex !== index && candidate.name === enemy.name);
+      if (index < 0 || !/^[A-Z][A-Za-z0-9]*$/.test(enemy.name) || !uniqueName || ![enemy.health, enemy.speed, enemy.reward].every((value) => Number.isFinite(value) && value > 0)) throw new Error("Enemies need a unique PascalCase name and positive stats.");
+      next.enemies[index] = { ...enemy, id: edit.value };
+      break;
+    }
+    case "addWave": {
+      const enemy = next.enemies[0];
+      if (!enemy) throw new Error("Create an enemy before authoring a wave.");
+      next.waves.push({ id: nextId("wave", next.waves), wave: next.waves.length + 1, enemyId: enemy.id, count: 10, interval: 1 });
+      break;
+    }
+    case "removeWave":
+      if (!next.waves.some((wave) => wave.id === edit.value)) throw new Error("Wave was not found.");
+      next.waves = next.waves.filter((wave) => wave.id !== edit.value);
+      break;
+    case "updateWave": {
+      const index = next.waves.findIndex((wave) => wave.id === edit.value);
+      const wave = edit.wave;
+      if (index < 0 || !next.enemies.some((enemy) => enemy.id === wave.enemyId) || ![wave.wave, wave.count, wave.interval].every((value) => Number.isFinite(value) && value > 0)) throw new Error("Waves need a known enemy and positive number, count, and interval.");
+      next.waves[index] = { ...wave, id: edit.value };
+      break;
+    }
     case "addBlock": {
       if (!blockKinds.has(edit.value)) throw new Error("Unsupported simulation block.");
       const number = next.flow.filter((block) => block.kind === edit.value).length + 1;
@@ -437,6 +506,9 @@ export const sampleDefinition = (): TowerDefenseDefinition => {
     messages: [{ name: "PlaceTower", direction: "clientToServer", fields: [{ name: "towerId", type: "string" }, { name: "position", type: "Vector3" }] }],
     packages: [],
     routines: [],
+    towers: defaultTowers(),
+    enemies: defaultEnemies(),
+    waves: defaultWaves(),
     flow,
     connections: flow.slice(1).map((block, index) => ({ from: flow[index].id, to: block.id })),
     schemas: defaultSchemas()
@@ -454,4 +526,16 @@ function defaultSchemas(): DataSchema[] {
 
 function defaultTests(): VisualTest[] {
   return [{ id: "lives-nonnegative", name: "Lives never become negative", condition: { field: "lives", comparison: ">=", amount: 0 } }];
+}
+
+function defaultTowers(): TowerArchetype[] {
+  return [{ id: "archer", name: "Archer", cost: 250, damage: 12, range: 18, cooldown: 0.8, targeting: "first" }];
+}
+
+function defaultEnemies(): EnemyArchetype[] {
+  return [{ id: "grunt", name: "Grunt", health: 100, speed: 1, reward: 10 }];
+}
+
+function defaultWaves(): AuthoredWave[] {
+  return [{ id: "wave-1", wave: 1, enemyId: "grunt", count: 10, interval: 1 }];
 }

@@ -76,5 +76,26 @@ export function validateDefinition(definition: TowerDefenseDefinition): Diagnost
   for (const block of definition.flow.filter((block) => block.kind === "callRoutine" && block.enabled)) {
     if (!block.routineId || !routineIds.has(block.routineId)) diagnostics.push({ path: `flow.${block.id}`, message: "Routine blocks must select an existing routine." });
   }
+  const towerNames = new Set<string>();
+  for (const tower of definition.towers) {
+    if (!/^[A-Z][A-Za-z0-9]*$/.test(tower.name)) diagnostics.push({ path: `towers.${tower.id}`, message: "Tower names must be PascalCase." });
+    if (towerNames.has(tower.name)) diagnostics.push({ path: `towers.${tower.id}`, message: "Tower names must be unique." });
+    towerNames.add(tower.name);
+    if (![tower.cost, tower.damage, tower.range, tower.cooldown].every((value) => Number.isFinite(value) && value > 0)) diagnostics.push({ path: `towers.${tower.id}`, message: "Tower combat values must be positive finite numbers." });
+  }
+  const enemyIds = new Set<string>();
+  const enemyNames = new Set<string>();
+  for (const enemy of definition.enemies) {
+    if (enemyIds.has(enemy.id)) diagnostics.push({ path: `enemies.${enemy.id}`, message: "Enemy IDs must be unique." });
+    enemyIds.add(enemy.id);
+    if (!/^[A-Z][A-Za-z0-9]*$/.test(enemy.name)) diagnostics.push({ path: `enemies.${enemy.id}`, message: "Enemy names must be PascalCase." });
+    if (enemyNames.has(enemy.name)) diagnostics.push({ path: `enemies.${enemy.id}`, message: "Enemy names must be unique." });
+    enemyNames.add(enemy.name);
+    if (![enemy.health, enemy.speed, enemy.reward].every((value) => Number.isFinite(value) && value > 0)) diagnostics.push({ path: `enemies.${enemy.id}`, message: "Enemy stats must be positive finite numbers." });
+  }
+  for (const wave of definition.waves) {
+    if (!enemyIds.has(wave.enemyId)) diagnostics.push({ path: `waves.${wave.id}`, message: "An authored wave references a missing enemy." });
+    if (![wave.wave, wave.count, wave.interval].every((value) => Number.isFinite(value) && value > 0)) diagnostics.push({ path: `waves.${wave.id}`, message: "Wave number, count, and interval must be positive finite numbers." });
+  }
   return diagnostics;
 }

@@ -42,7 +42,7 @@ Legend: ✅ shipped and tested · 🟡 scaffolded/partial · ⬜ not built
 - ⬜ JECS integration and visual ECS authoring (components, relationships, queries, schedules).
 - ⬜ Lync integration: actual typed remotes, serialization, reliability configuration, and visible request/validation/simulation/replication pipelines.
 - ⬜ Lyra integration: player data schemas, defaults, validation, migrations, generated fixtures, load/unload wiring, and migration tests.
-- 🟡 Tower Defense factory: project wizard, definition/generation, and configurable simulation block pipeline.
+- 🟡 Tower Defense factory: project wizard, configurable simulation block pipeline, visual authored tower/enemy catalogs, and deterministic authored wave schedule generation.
 - ⬜ Tower Defense deep factory: enemies, towers, projectiles, path progress, waves, placement, upgrades, effects, replication, authored/procedural waves, and 100-wave simulation.
 - ⬜ Grid tactics factory: square/hex grids, turn order, movement, terrain, combat, effects, objectives, AI, replayable deterministic simulations.
 - ⬜ Lower-level factories: inventory, equipment, abilities, cooldowns, status effects, combat, NPC AI, quests, economy, shops, crafting, rounds, matchmaking, progression, achievements, save data, replication, and test factories.

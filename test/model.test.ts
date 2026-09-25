@@ -52,6 +52,15 @@ describe("visual definition edits", () => {
     expect(updated.flow.at(-1)).toMatchObject({ kind: "callRoutine", routineId: routine.id });
   });
 
+  it("authors Tower Defense catalogs and wave entries", () => {
+    const withTower = applyCanvasEdit(sampleDefinition(), { kind: "addTower" });
+    const tower = withTower.towers.at(-1)!;
+    const updatedTower = applyCanvasEdit(withTower, { kind: "updateTower", value: tower.id, tower: { ...tower, name: "Cannon", damage: 30 } });
+    const withWave = applyCanvasEdit(updatedTower, { kind: "addWave" });
+    expect(withWave.towers.at(-1)).toMatchObject({ name: "Cannon", damage: 30 });
+    expect(withWave.waves.at(-1)).toMatchObject({ enemyId: "grunt", count: 10 });
+  });
+
   it("stores custom Luau only on a Custom System block", () => {
     const withBlock = applyCanvasEdit(sampleDefinition(), { kind: "addBlock", value: "customSystem" });
     const custom = withBlock.flow.at(-1)!;

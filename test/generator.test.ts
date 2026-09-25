@@ -43,6 +43,13 @@ describe("Tower Defense generator", () => {
     expect(simulation).toContain("state.currency + 25");
   });
 
+  it("generates authored tower, enemy, and wave data", () => {
+    const files = generateTowerDefense(sampleDefinition());
+    expect(files.find((file) => file.path === "src/shared/domain/TowerCatalog.luau")?.content).toContain("Archer");
+    expect(files.find((file) => file.path === "src/shared/domain/EnemyCatalog.luau")?.content).toContain("Grunt");
+    expect(files.find((file) => file.path === "src/shared/domain/WaveSchedule.luau")?.content).toContain('enemyId = "grunt"');
+  });
+
   it("turns enabled visual blocks into a concrete Luau execution pipeline", () => {
     const definition = sampleDefinition();
     definition.flow = [{ ...definition.flow[0], enabled: true }, { ...definition.flow[5], enabled: false }];
