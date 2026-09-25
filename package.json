@@ -20,6 +20,7 @@
     "onCommand:robloxForge.validate",
     "onCommand:robloxForge.generate",
     "onCommand:robloxForge.buildAndTest"
+    ,"onCommand:robloxForge.simulate"
     ,"onCommand:robloxForge.installToolchain"
     ,"onCommand:robloxForge.installDependencies"
     ,"onCommand:robloxForge.commandPalette"
@@ -49,6 +50,10 @@
       {
         "command": "robloxForge.buildAndTest",
         "title": "Roblox Forge: Build & Test"
+      },
+      {
+        "command": "robloxForge.simulate",
+        "title": "Roblox Forge: Simulate Tower Defense…"
       },
       {
         "command": "robloxForge.installToolchain",

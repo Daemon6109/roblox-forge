@@ -54,7 +54,7 @@ Legend: ✅ shipped and tested · 🟡 scaffolded/partial · ⬜ not built
 - 🟡 Visual state-invariant test blocks now generate into the Lute simulation suite. Scenario, serialization, migration, network-contract, and performance tests remain.
 - ⬜ Property/fuzz testing and generated invariant suites.
 - 🟡 Build & Test: validates and regenerates the project, then runs available StyLua formatting, Selene analysis, Lute typechecking/tests, and a Rojo build with a truthful VS Code output report. Dependency installation, Studio sync, result-to-node linking, simulation dashboard, and canvas test authoring remain incomplete.
-- ⬜ Simulation dashboard: seeds, replays, batch runs, charts, performance distributions, failed invariants.
+- 🟡 Forge can now run 1/10/100/1000 deterministic authored Tower Defense schedules and report spawned/defeated/leaked/reward totals in the Build & Test output. Seeds, replay, charts, distributions, and failed-invariant drilldown remain.
 - ⬜ Visual debugging: timeline, event traces, entity inspector, component diffs, network/save traces, and system order.
 
 ## Release sequence

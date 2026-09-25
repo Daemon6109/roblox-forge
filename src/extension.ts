@@ -9,6 +9,7 @@ import { preserveUserRegions } from "./ownership";
 import { installForgeToolchain, installWallyDependencies, runToolchain } from "./toolchain";
 import { ForgeExplorerProvider } from "./explorer";
 import { scheduleBlocks } from "./graph";
+import { simulateTowerDefense } from "./simulation";
 
 const definitionPath = (root: string) => path.join(root, ".forge", "tower-defense.json");
 const historyPath = (root: string) => path.join(root, ".forge", "history");
@@ -58,6 +59,7 @@ export function activate(context: vscode.ExtensionContext) {
       { label: "Create Tower Defense Definition", command: "robloxForge.newTowerDefenseProject" },
       { label: "Validate Graph", command: "robloxForge.validate" },
       { label: "Build & Test", command: "robloxForge.buildAndTest" },
+      { label: "Simulate Tower Defense…", command: "robloxForge.simulate" },
       { label: "Install Forge Toolchain (Lute + Rojo)", command: "robloxForge.installToolchain" },
       { label: "Install Wally Dependencies", command: "robloxForge.installDependencies" },
       { label: "Generate Luau Project", command: "robloxForge.generate" },
@@ -229,6 +231,28 @@ export function activate(context: vscode.ExtensionContext) {
       else if (unavailable.length) vscode.window.showWarningMessage(`Graph and generation passed. ${unavailable.length} local tool${unavailable.length === 1 ? " is" : "s are"} unavailable; see Build & Test output.`);
       else vscode.window.showInformationMessage("Build & Test passed.");
     } catch (error) { vscode.window.showErrorMessage(`Build & Test failed: ${String(error)}`); }
+  }));
+  context.subscriptions.push(vscode.commands.registerCommand("robloxForge.simulate", async (requestedRuns?: number) => {
+    const root = await workspaceRoot();
+    if (!root) return vscode.window.showErrorMessage("Open a Forge project first.");
+    try {
+      const definition = await readDefinition(root);
+      const diagnostics = validateDefinition(definition);
+      if (diagnostics.length) return vscode.window.showErrorMessage(`Simulation stopped: ${diagnostics.map((item) => item.message).join(" ")}`);
+      const runs = requestedRuns ?? Number(await vscode.window.showQuickPick(["1", "10", "100", "1000"], { title: "Simulate Tower Defense", placeHolder: "How many deterministic authored schedule runs?" }));
+      if (!runs) return;
+      const summary = simulateTowerDefense(definition, runs);
+      toolOutput.clear();
+      toolOutput.appendLine("Roblox Forge · Tower Defense Simulation");
+      toolOutput.appendLine(`✓ ${summary.runs} deterministic run${summary.runs === 1 ? "" : "s"}`);
+      toolOutput.appendLine(`  Waves processed: ${summary.wavesProcessed}`);
+      toolOutput.appendLine(`  Spawned: ${summary.spawned}`);
+      toolOutput.appendLine(`  Defeated: ${summary.defeated}`);
+      toolOutput.appendLine(`  Leaked: ${summary.leaked}`);
+      toolOutput.appendLine(`  Rewards: ${summary.rewards}`);
+      toolOutput.show(true);
+      vscode.window.showInformationMessage(`Simulation complete: ${summary.defeated} defeated, ${summary.leaked} leaked across ${summary.runs} run${summary.runs === 1 ? "" : "s"}.`);
+    } catch (error) { vscode.window.showErrorMessage(`Simulation failed: ${String(error)}`); }
   }));
   context.subscriptions.push(vscode.commands.registerCommand("robloxForge.installDependencies", async () => {
     const root = await workspaceRoot();
