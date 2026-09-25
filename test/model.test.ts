@@ -61,6 +61,13 @@ describe("visual definition edits", () => {
     expect(withWave.waves.at(-1)).toMatchObject({ enemyId: "grunt", count: 10 });
   });
 
+  it("authors deterministic simulation scenario expectations", () => {
+    const withScenario = applyCanvasEdit(sampleDefinition(), { kind: "addScenario" });
+    const scenario = withScenario.scenarios.at(-1)!;
+    const updated = applyCanvasEdit(withScenario, { kind: "updateScenario", value: scenario.id, scenario: { ...scenario, name: "Rewards scale", runs: 1000, metric: "rewards", comparison: ">=", amount: 1 } });
+    expect(updated.scenarios.at(-1)).toMatchObject({ name: "Rewards scale", runs: 1000, metric: "rewards" });
+  });
+
   it("stores custom Luau only on a Custom System block", () => {
     const withBlock = applyCanvasEdit(sampleDefinition(), { kind: "addBlock", value: "customSystem" });
     const custom = withBlock.flow.at(-1)!;

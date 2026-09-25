@@ -51,7 +51,7 @@ Legend: ✅ shipped and tested · 🟡 scaffolded/partial · ⬜ not built
 
 - ✅ Generator rejects malformed network message names before generation.
 - ✅ Extension-host test executes Create → Validate → Generate in a real VS Code runtime and checks output files.
-- 🟡 Visual state-invariant test blocks now generate into the Lute simulation suite. Scenario, serialization, migration, network-contract, and performance tests remain.
+- 🟡 Visual state-invariant and deterministic simulation-scenario test blocks now generate into the Lute suite. Serialization, migration, network-contract, and performance tests remain.
 - ⬜ Property/fuzz testing and generated invariant suites.
 - 🟡 Build & Test: validates and regenerates the project, then runs available StyLua formatting, Selene analysis, Lute typechecking/tests, and a Rojo build with a truthful VS Code output report. Dependency installation, Studio sync, result-to-node linking, simulation dashboard, and canvas test authoring remain incomplete.
 - 🟡 Forge can now run 1/10/100/1000 deterministic authored Tower Defense schedules and report spawned/defeated/leaked/reward totals in the Build & Test output. Seeds, replay, charts, distributions, and failed-invariant drilldown remain.

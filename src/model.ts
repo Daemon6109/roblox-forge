@@ -20,6 +20,8 @@ export type StateMutationOperation = "add" | "set" | "subtract" | "multiply" | "
 export type StateMutation = { field: StateField; operation: StateMutationOperation; amount: number; operand?: StateOperand };
 export type StateCondition = { field: StateField; comparison: ">=" | ">" | "<=" | "<" | "=="; amount: number };
 export type VisualTest = { id: string; name: string; condition: StateCondition };
+export type SimulationMetric = "spawned" | "defeated" | "leaked" | "rewards";
+export type SimulationScenario = { id: string; name: string; runs: number; metric: SimulationMetric; comparison: StateCondition["comparison"]; amount: number };
 export type ReusableRoutine = { id: string; name: string; steps: StateMutation[] };
 export type TowerArchetype = { id: string; name: string; cost: number; damage: number; range: number; cooldown: number; targeting: TowerDefenseDefinition["targeting"][number] };
 export type EnemyArchetype = { id: string; name: string; health: number; speed: number; reward: number };
@@ -39,6 +41,7 @@ export type TowerDefenseDefinition = {
   towers: TowerArchetype[];
   enemies: EnemyArchetype[];
   waves: AuthoredWave[];
+  scenarios: SimulationScenario[];
   flow: SimulationBlock[];
   connections: FlowConnection[];
   schemas: DataSchema[];
@@ -64,6 +67,9 @@ export type CanvasEdit =
   | { kind: "addTest" }
   | { kind: "removeTest"; value: string }
   | { kind: "updateTest"; value: string; test: VisualTest }
+  | { kind: "addScenario" }
+  | { kind: "removeScenario"; value: string }
+  | { kind: "updateScenario"; value: string; scenario: SimulationScenario }
   | { kind: "addRoutine" }
   | { kind: "removeRoutine"; value: string }
   | { kind: "updateRoutine"; value: string; routine: ReusableRoutine }
@@ -108,6 +114,7 @@ const schemaKinds = new Set<SchemaKind>(["component", "resource", "event"]);
 const fieldTypes = new Set<Field["type"]>(["string", "number", "boolean", "Vector3", "u16"]);
 const stateFields = new Set<StateField>(["wave", "currency", "lives"]);
 const stateMutationOperations = new Set<StateMutationOperation>(["add", "set", "subtract", "multiply", "divide", "min", "max"]);
+const simulationMetrics = new Set<SimulationMetric>(["spawned", "defeated", "leaked", "rewards"]);
 const packageRealms = new Set<PackageRealm>(["shared", "server", "dev"]);
 const flowPorts = new Set<FlowPort>(["next", "true", "false"]);
 const blockKinds = new Set<SimulationBlockKind>(["spawnWave", "moveEnemies", "acquireTargets", "attackTargets", "applyDamage", "cleanupDead", "mutateState", "condition", "callRoutine", "customSystem"]);
@@ -133,10 +140,10 @@ const defaultFlow = (): SimulationBlock[] => [
   { id: "cleanup-dead", kind: "cleanupDead", enabled: true, position: { x: 260, y: 710 }, bindings: ["health"], ...structuredClone(blockDefaults.cleanupDead) }
 ];
 
-export function hydrateDefinition(value: Omit<TowerDefenseDefinition, "flow" | "connections" | "schemas" | "tests" | "packages" | "routines" | "towers" | "enemies" | "waves"> & Partial<Pick<TowerDefenseDefinition, "flow" | "connections" | "schemas" | "tests" | "packages" | "routines" | "towers" | "enemies" | "waves">>): TowerDefenseDefinition {
+export function hydrateDefinition(value: Omit<TowerDefenseDefinition, "flow" | "connections" | "schemas" | "tests" | "packages" | "routines" | "towers" | "enemies" | "waves" | "scenarios"> & Partial<Pick<TowerDefenseDefinition, "flow" | "connections" | "schemas" | "tests" | "packages" | "routines" | "towers" | "enemies" | "waves" | "scenarios">>): TowerDefenseDefinition {
   const flow = value.flow?.length ? value.flow.map((block, index) => ({ ...structuredClone(blockDefaults[block.kind]), ...block, bindings: block.bindings ?? [], stateMutation: block.kind === "mutateState" ? { field: "currency" as StateField, operation: "add" as const, amount: 10, ...block.stateMutation, operand: block.stateMutation?.operand ?? { source: "literal" as const, amount: block.stateMutation?.amount ?? 10 } } : block.stateMutation, stateCondition: block.kind === "condition" ? block.stateCondition ?? { field: "lives", comparison: ">", amount: 0 } : block.stateCondition, position: block.position ?? { x: 260, y: 60 + index * 130 }, config: { ...blockDefaults[block.kind].config, ...block.config } })) : defaultFlow();
   const connections = value.connections ?? flow.slice(1).map((block, index) => ({ from: flow[index].id, to: block.id }));
-  return { ...value, flow, connections, schemas: value.schemas ?? defaultSchemas(), tests: value.tests ?? defaultTests(), packages: value.packages ?? [], routines: value.routines ?? [], towers: value.towers ?? defaultTowers(), enemies: value.enemies ?? defaultEnemies(), waves: value.waves ?? defaultWaves() };
+  return { ...value, flow, connections, schemas: value.schemas ?? defaultSchemas(), tests: value.tests ?? defaultTests(), packages: value.packages ?? [], routines: value.routines ?? [], towers: value.towers ?? defaultTowers(), enemies: value.enemies ?? defaultEnemies(), waves: value.waves ?? defaultWaves(), scenarios: value.scenarios ?? defaultScenarios() };
 }
 
 function nextMessageName(messages: NetworkMessage[]) {
@@ -151,6 +158,12 @@ function nextTestId(tests: VisualTest[]) {
   let suffix = tests.length + 1;
   while (tests.some((test) => test.id === `invariant-${suffix}`)) suffix++;
   return `invariant-${suffix}`;
+}
+
+function nextScenarioId(scenarios: SimulationScenario[]) {
+  let suffix = scenarios.length + 1;
+  while (scenarios.some((scenario) => scenario.id === `scenario-${suffix}`)) suffix++;
+  return `scenario-${suffix}`;
 }
 
 function nextPackageId(packages: PackageDependency[]) {
@@ -279,6 +292,22 @@ export function applyCanvasEdit(definition: TowerDefenseDefinition, edit: Canvas
       const uniqueName = !next.tests.some((candidate, candidateIndex) => candidateIndex !== index && candidate.name === test.name.trim());
       if (index < 0 || !test.name.trim() || test.name.trim().length > 80 || !validCondition || !uniqueName) throw new Error("Visual tests need a unique name and valid state condition.");
       next.tests[index] = { id: edit.value, name: test.name.trim(), condition: structuredClone(test.condition) };
+      break;
+    }
+    case "addScenario":
+      next.scenarios.push({ id: nextScenarioId(next.scenarios), name: `Simulation scenario ${next.scenarios.length + 1}`, runs: 100, metric: "leaked", comparison: "==", amount: 0 });
+      break;
+    case "removeScenario":
+      if (!next.scenarios.some((scenario) => scenario.id === edit.value)) throw new Error("Simulation scenario was not found.");
+      next.scenarios = next.scenarios.filter((scenario) => scenario.id !== edit.value);
+      break;
+    case "updateScenario": {
+      const index = next.scenarios.findIndex((scenario) => scenario.id === edit.value);
+      const scenario = edit.scenario;
+      const validComparison = [">=", ">", "<=", "<", "=="].includes(scenario.comparison);
+      const uniqueName = !next.scenarios.some((candidate, candidateIndex) => candidateIndex !== index && candidate.name === scenario.name.trim());
+      if (index < 0 || !scenario.name.trim() || !uniqueName || !Number.isInteger(scenario.runs) || scenario.runs < 1 || scenario.runs > 100_000 || !simulationMetrics.has(scenario.metric) || !validComparison || !Number.isFinite(scenario.amount)) throw new Error("Simulation scenarios need a unique name, valid run count, metric, and expectation.");
+      next.scenarios[index] = { ...scenario, id: edit.value, name: scenario.name.trim() };
       break;
     }
     case "addRoutine":
@@ -511,6 +540,7 @@ export const sampleDefinition = (): TowerDefenseDefinition => {
     towers: defaultTowers(),
     enemies: defaultEnemies(),
     waves: defaultWaves(),
+    scenarios: defaultScenarios(),
     flow,
     connections: flow.slice(1).map((block, index) => ({ from: flow[index].id, to: block.id })),
     schemas: defaultSchemas()
@@ -540,4 +570,8 @@ function defaultEnemies(): EnemyArchetype[] {
 
 function defaultWaves(): AuthoredWave[] {
   return [{ id: "wave-1", wave: 1, enemyId: "grunt", count: 10, interval: 1 }];
+}
+
+function defaultScenarios(): SimulationScenario[] {
+  return [{ id: "no-leaks", name: "Authored waves do not leak", runs: 100, metric: "leaked", comparison: "==", amount: 0 }];
 }

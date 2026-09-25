@@ -97,5 +97,16 @@ export function validateDefinition(definition: TowerDefenseDefinition): Diagnost
     if (!enemyIds.has(wave.enemyId)) diagnostics.push({ path: `waves.${wave.id}`, message: "An authored wave references a missing enemy." });
     if (![wave.wave, wave.count, wave.interval].every((value) => Number.isFinite(value) && value > 0)) diagnostics.push({ path: `waves.${wave.id}`, message: "Wave number, count, and interval must be positive finite numbers." });
   }
+  const scenarioIds = new Set<string>();
+  const scenarioNames = new Set<string>();
+  for (const scenario of definition.scenarios) {
+    if (!scenario.id || scenarioIds.has(scenario.id)) diagnostics.push({ path: `scenarios.${scenario.id}`, message: "Simulation scenario IDs must be unique." });
+    scenarioIds.add(scenario.id);
+    if (!scenario.name.trim() || scenarioNames.has(scenario.name)) diagnostics.push({ path: `scenarios.${scenario.id}`, message: "Simulation scenario names must be unique." });
+    scenarioNames.add(scenario.name);
+    if (!Number.isInteger(scenario.runs) || scenario.runs < 1 || scenario.runs > 100_000) diagnostics.push({ path: `scenarios.${scenario.id}`, message: "Simulation scenarios need 1–100,000 runs." });
+    if (!["spawned", "defeated", "leaked", "rewards"].includes(scenario.metric)) diagnostics.push({ path: `scenarios.${scenario.id}`, message: "Simulation scenario metric is not supported." });
+    if (![">=", ">", "<=", "<", "=="].includes(scenario.comparison) || !Number.isFinite(scenario.amount)) diagnostics.push({ path: `scenarios.${scenario.id}`, message: "Simulation scenario expectation is invalid." });
+  }
   return diagnostics;
 }
