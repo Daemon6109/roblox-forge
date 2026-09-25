@@ -112,6 +112,7 @@
     "check": "tsc --noEmit",
     "test": "npm run test:unit",
     "test:unit": "vitest run",
+    "test:lute": "RUN_FORGE_LUTE_INTEGRATION=1 vitest run test/lute.fixture.test.ts",
     "test:vscode": "npm run build && vscode-test",
     "package": "npm run check && npm run test:unit && npm run build",
     "package:vsix": "npm run package && vsce package"

@@ -21,11 +21,20 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Set up pinned Roblox toolchain
+        uses: paradoxum-games/setup-rokit@v3
+        with:
+          version: 1.2.0
+          cache: true
+
       - name: Install dependencies
         run: npm ci
 
       - name: Verify extension
         run: npm run package
+
+      - name: Typecheck generated portable Luau with Lute
+        run: npm run test:lute
 
       - name: Run VS Code extension-host test
         run: xvfb-run -a npm run test:vscode
