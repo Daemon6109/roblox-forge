@@ -20,6 +20,7 @@
     "onCommand:robloxForge.validate",
     "onCommand:robloxForge.generate",
     "onCommand:robloxForge.buildAndTest"
+    ,"onCommand:robloxForge.installToolchain"
     ,"onCommand:robloxForge.installDependencies"
     ,"onCommand:robloxForge.commandPalette"
     ,"onCommand:robloxForge.autoLayout"
@@ -48,6 +49,10 @@
       {
         "command": "robloxForge.buildAndTest",
         "title": "Roblox Forge: Build & Test"
+      },
+      {
+        "command": "robloxForge.installToolchain",
+        "title": "Roblox Forge: Install Forge Toolchain (Lute + Rojo)"
       },
       {
         "command": "robloxForge.installDependencies",

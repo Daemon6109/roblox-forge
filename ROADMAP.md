@@ -34,7 +34,7 @@ Legend: ✅ shipped and tested · 🟡 scaffolded/partial · ⬜ not built
 - ⬜ StyLua formatting and format diagnostics.
 - ⬜ Selene linting and clickable graph diagnostics.
 - ⬜ Luau static analysis.
-- ⬜ Lute execution, tests, typechecking, fuzzing, benchmarks, and fast feedback orchestration.
+- 🟡 Generated projects now pin Lute in `rokit.toml`, and Forge can install the pinned Lute/Rojo toolchain. Lute execution, fuzzing, benchmarks, and richer fast-feedback orchestration remain.
 - ⬜ Unified **Build & Test** panel with clear results instead of raw terminal output.
 
 ## Gameplay integrations and factories

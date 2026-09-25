@@ -26,8 +26,9 @@ Open the folder in VS Code, press `F5`, then use the command palette:
 1. Open the **Roblox Forge** activity-bar icon.
 2. Choose **Create a project** to create a generated project from a folder picker, or use `Roblox Forge: Create Tower Defense Definition` in an existing folder.
 3. Add, reorder, enable, or disable simulation blocks; edit the factory inspector. A condition block has separate **T** and **F** output ports.
-4. Use **Build & Test** to regenerate, then run available StyLua, Selene, and Lute checks. Missing local tools are reported explicitly.
-4. `Roblox Forge: Validate Definition` → `Roblox Forge: Generate Luau Project`.
+4. Run **Roblox Forge: Install Forge Toolchain (Lute + Rojo)** once in a generated project. Forge writes version-pinned tool declarations to `rokit.toml`.
+5. Use **Build & Test** to regenerate, then run available StyLua, Selene, Lute, and Rojo checks. Missing local tools are reported explicitly.
+6. `Roblox Forge: Validate Definition` → `Roblox Forge: Generate Luau Project`.
 
 ## Design boundaries
 

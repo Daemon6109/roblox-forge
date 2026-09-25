@@ -25,6 +25,11 @@ export function installWallyDependencies(root: string): Promise<ToolResult> {
   return runTool(root, { label: "Wally dependency install", command: "wally", args: ["install"] });
 }
 
+/** Installs the version-pinned portable runtime/build tools declared in generated rokit.toml. */
+export function installForgeToolchain(root: string): Promise<ToolResult> {
+  return runTool(root, { label: "Forge toolchain install", command: "rokit", args: ["install"] });
+}
+
 async function runTool(root: string, tool: ToolInvocation): Promise<ToolResult> {
   const command = `${tool.command} ${tool.args.join(" ")}`;
   try {

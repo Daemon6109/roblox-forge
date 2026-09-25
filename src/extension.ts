@@ -6,7 +6,7 @@ import { ForgeCanvasProvider } from "./canvas";
 import { applyCanvasEdit, hydrateDefinition, sampleDefinition, type CanvasEdit, type TowerDefenseDefinition } from "./model";
 import { validateDefinition } from "./validation";
 import { preserveUserRegions } from "./ownership";
-import { installWallyDependencies, runToolchain } from "./toolchain";
+import { installForgeToolchain, installWallyDependencies, runToolchain } from "./toolchain";
 import { ForgeExplorerProvider } from "./explorer";
 import { scheduleBlocks } from "./graph";
 
@@ -58,6 +58,7 @@ export function activate(context: vscode.ExtensionContext) {
       { label: "Create Tower Defense Definition", command: "robloxForge.newTowerDefenseProject" },
       { label: "Validate Graph", command: "robloxForge.validate" },
       { label: "Build & Test", command: "robloxForge.buildAndTest" },
+      { label: "Install Forge Toolchain (Lute + Rojo)", command: "robloxForge.installToolchain" },
       { label: "Install Wally Dependencies", command: "robloxForge.installDependencies" },
       { label: "Generate Luau Project", command: "robloxForge.generate" },
       { label: "Open Generated Simulation", command: "robloxForge.openGeneratedSimulation" },
@@ -241,6 +242,19 @@ export function activate(context: vscode.ExtensionContext) {
     if (result.status === "passed") vscode.window.showInformationMessage("Wally dependencies installed and lockfile updated.");
     else if (result.status === "unavailable") vscode.window.showWarningMessage("Wally is not installed; see Roblox Forge · Build & Test.");
     else vscode.window.showErrorMessage("Wally dependency install failed; see Roblox Forge · Build & Test.");
+  }));
+  context.subscriptions.push(vscode.commands.registerCommand("robloxForge.installToolchain", async () => {
+    const root = await workspaceRoot();
+    if (!root) return vscode.window.showErrorMessage("Open a Forge project first.");
+    const result = await installForgeToolchain(root);
+    toolOutput.clear();
+    toolOutput.appendLine(`${result.status === "passed" ? "✓" : result.status === "unavailable" ? "–" : "✗"} ${result.label}`);
+    toolOutput.appendLine(result.command);
+    if (result.output) toolOutput.appendLine(result.output);
+    toolOutput.show(true);
+    if (result.status === "passed") vscode.window.showInformationMessage("Forge's pinned Lute and Rojo tools are installed.");
+    else if (result.status === "unavailable") vscode.window.showWarningMessage("Rokit is not installed; see Roblox Forge · Build & Test.");
+    else vscode.window.showErrorMessage("Forge toolchain install failed; see Roblox Forge · Build & Test.");
   }));
   context.subscriptions.push(vscode.commands.registerCommand("robloxForge.openGeneratedSimulation", async () => {
     const root = await workspaceRoot();
