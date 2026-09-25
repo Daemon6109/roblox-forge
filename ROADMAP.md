@@ -45,7 +45,7 @@ Legend: ✅ shipped and tested · 🟡 scaffolded/partial · ⬜ not built
 - 🟡 Tower Defense factory: project wizard, configurable simulation block pipeline, visual authored tower/enemy catalogs, and deterministic authored wave schedule generation.
 - 🟡 Tower Defense deep factory: visual enemy/tower catalogs, authored waves, pure first/last/strongest/weakest/nearest targeting, visual placement/bounds rules, range/damage combat resolution, pure enemy path progression, timed status effects, and a deterministic wave simulator are generated now. Projectiles, visual path authoring, upgrades, effect authoring, replication, procedural waves, and the 100-wave dashboard remain.
 - ⬜ Grid tactics factory: square/hex grids, turn order, movement, terrain, combat, effects, objectives, AI, replayable deterministic simulations.
-- ⬜ Lower-level factories: inventory, equipment, abilities, cooldowns, status effects, combat, NPC AI, quests, economy, shops, crafting, rounds, matchmaking, progression, achievements, save data, replication, and test factories.
+- 🟡 Lower-level domain systems: portable cooldown and status-effect primitives are generated for Tower Defense projects. Visual authoring plus inventory, equipment, abilities, combat factories, NPC AI, quests, economy, shops, crafting, rounds, matchmaking, progression, achievements, save data, replication, and test factories remain.
 
 ## Testing, simulation, and observability
 
