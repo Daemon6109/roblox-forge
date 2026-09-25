@@ -21,9 +21,16 @@ const systemFunctions: Record<TowerDefenseDefinition["flow"][number]["kind"], { 
   customSystem: { label: "Custom System", primary: "" }
 };
 
-function mutationResult(mutation: { field: "wave" | "currency" | "lives"; operation: "add" | "set"; amount: number; operand?: { source: "literal"; amount: number } | { source: "state"; field: "wave" | "currency" | "lives" } }, label: string) {
+function mutationResult(mutation: { field: "wave" | "currency" | "lives"; operation: "add" | "set" | "subtract" | "multiply" | "divide" | "min" | "max"; amount: number; operand?: { source: "literal"; amount: number } | { source: "state"; field: "wave" | "currency" | "lives" } }, label: string) {
   const operand = mutation.operand?.source === "state" ? `state.${mutation.operand.field}` : String(mutation.operand?.source === "literal" ? mutation.operand.amount : mutation.amount);
-  const value = mutation.operation === "add" ? `state.${mutation.field} + ${operand}` : operand;
+  const current = `state.${mutation.field}`;
+  const value = mutation.operation === "add" ? `${current} + ${operand}`
+    : mutation.operation === "subtract" ? `${current} - ${operand}`
+      : mutation.operation === "multiply" ? `${current} * ${operand}`
+        : mutation.operation === "divide" ? `${current} / ${operand}`
+          : mutation.operation === "min" ? `math.min(${current}, ${operand})`
+            : mutation.operation === "max" ? `math.max(${current}, ${operand})`
+              : operand;
   return `{ wave = ${mutation.field === "wave" ? value : "state.wave"}, currency = ${mutation.field === "currency" ? value : "state.currency"}, lives = ${mutation.field === "lives" ? value : "state.lives"}, tick = state.tick + 1, lastSystem = ${quote(label)}, lastValue = ${mutation.amount} }`;
 }
 
@@ -56,7 +63,14 @@ ${packagesFor(realm)}`).join("\n\n");
     if (block.kind === "mutateState") {
       const mutation = block.stateMutation ?? { field: "currency", operation: "add", amount: 10 };
       const operand = mutation.operand?.source === "state" ? `state.${mutation.operand.field}` : String(mutation.operand?.source === "literal" ? mutation.operand.amount : mutation.amount);
-      const value = mutation.operation === "add" ? `state.${mutation.field} + ${operand}` : operand;
+      const current = `state.${mutation.field}`;
+      const value = mutation.operation === "add" ? `${current} + ${operand}`
+        : mutation.operation === "subtract" ? `${current} - ${operand}`
+          : mutation.operation === "multiply" ? `${current} * ${operand}`
+            : mutation.operation === "divide" ? `${current} / ${operand}`
+              : mutation.operation === "min" ? `math.min(${current}, ${operand})`
+                : mutation.operation === "max" ? `math.max(${current}, ${operand})`
+                  : operand;
       return `local function ${functionName(block.id)}(state: State, context: Context): State\n\t-- Visual state mutation: ${mutation.operation} ${operand} to ${mutation.field}; binds ${contract}.\n\treturn { wave = ${mutation.field === "wave" ? value : "state.wave"}, currency = ${mutation.field === "currency" ? value : "state.currency"}, lives = ${mutation.field === "lives" ? value : "state.lives"}, tick = state.tick + 1, lastSystem = ${quote(block.label)}, lastValue = ${mutation.amount} }\nend`;
     }
     if (block.kind === "condition") {

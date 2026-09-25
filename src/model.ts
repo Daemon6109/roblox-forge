@@ -16,7 +16,8 @@ export type FlowPort = "next" | "true" | "false";
 export type FlowConnection = { from: string; to: string; fromPort?: FlowPort };
 export type StateField = "wave" | "currency" | "lives";
 export type StateOperand = { source: "literal"; amount: number } | { source: "state"; field: StateField };
-export type StateMutation = { field: StateField; operation: "add" | "set"; amount: number; operand?: StateOperand };
+export type StateMutationOperation = "add" | "set" | "subtract" | "multiply" | "divide" | "min" | "max";
+export type StateMutation = { field: StateField; operation: StateMutationOperation; amount: number; operand?: StateOperand };
 export type StateCondition = { field: StateField; comparison: ">=" | ">" | "<=" | "<" | "=="; amount: number };
 export type VisualTest = { id: string; name: string; condition: StateCondition };
 export type ReusableRoutine = { id: string; name: string; steps: StateMutation[] };
@@ -106,6 +107,7 @@ const targetModes = new Set<TowerDefenseDefinition["targeting"][number]>(["first
 const schemaKinds = new Set<SchemaKind>(["component", "resource", "event"]);
 const fieldTypes = new Set<Field["type"]>(["string", "number", "boolean", "Vector3", "u16"]);
 const stateFields = new Set<StateField>(["wave", "currency", "lives"]);
+const stateMutationOperations = new Set<StateMutationOperation>(["add", "set", "subtract", "multiply", "divide", "min", "max"]);
 const packageRealms = new Set<PackageRealm>(["shared", "server", "dev"]);
 const flowPorts = new Set<FlowPort>(["next", "true", "false"]);
 const blockKinds = new Set<SimulationBlockKind>(["spawnWave", "moveEnemies", "acquireTargets", "attackTargets", "applyDamage", "cleanupDead", "mutateState", "condition", "callRoutine", "customSystem"]);
@@ -171,7 +173,7 @@ function nextId(prefix: string, values: Array<{ id: string }>) {
 
 function validMutation(mutation: StateMutation) {
   const operand = mutation.operand ?? { source: "literal" as const, amount: mutation.amount };
-  return stateFields.has(mutation.field) && ["add", "set"].includes(mutation.operation) && Number.isFinite(mutation.amount) && (operand.source === "literal" ? Number.isFinite(operand.amount) : stateFields.has(operand.field));
+  return stateFields.has(mutation.field) && stateMutationOperations.has(mutation.operation) && Number.isFinite(mutation.amount) && (operand.source === "literal" ? Number.isFinite(operand.amount) : stateFields.has(operand.field));
 }
 
 /** Applies only whitelisted visual-canvas changes; never blindly merges webview input. */
@@ -406,7 +408,7 @@ export function applyCanvasEdit(definition: TowerDefenseDefinition, edit: Canvas
     case "setStateMutation": {
       const block = next.flow.find((candidate) => candidate.id === edit.value);
       const operand = edit.mutation.operand ?? { source: "literal", amount: edit.mutation.amount };
-      if (!block || block.kind !== "mutateState" || !stateFields.has(edit.mutation.field) || !["add", "set"].includes(edit.mutation.operation) || !Number.isFinite(edit.mutation.amount) || (operand.source === "literal" && !Number.isFinite(operand.amount)) || (operand.source === "state" && !stateFields.has(operand.field))) throw new Error("Invalid state mutation.");
+      if (!block || block.kind !== "mutateState" || !validMutation(edit.mutation)) throw new Error("Invalid state mutation.");
       block.stateMutation = { ...edit.mutation, operand };
       break;
     }

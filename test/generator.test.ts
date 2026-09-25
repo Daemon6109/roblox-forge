@@ -90,6 +90,14 @@ describe("Tower Defense generator", () => {
     expect(simulation).toContain("state.currency + state.wave");
   });
 
+  it("generates extended visual arithmetic operations", () => {
+    const definition = sampleDefinition();
+    definition.flow = [{ ...definition.flow[0], id: "double-wave", kind: "mutateState", label: "Double wave", config: {}, bindings: [], stateMutation: { field: "wave", operation: "multiply", amount: 2 } }];
+    definition.connections = [];
+    const simulation = generateTowerDefense(definition).find((file) => file.path === "src/shared/domain/Simulation.luau")?.content ?? "";
+    expect(simulation).toContain("state.wave * 2");
+  });
+
   it("generates separate true and false control flow for a condition", () => {
     const definition = sampleDefinition();
     const condition = { ...definition.flow[0], id: "still-alive", kind: "condition" as const, label: "Still alive", config: {}, bindings: [], stateCondition: { field: "lives" as const, comparison: ">" as const, amount: 0 } };
