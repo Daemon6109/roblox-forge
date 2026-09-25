@@ -9,6 +9,7 @@ describe("Tower Defense generator", () => {
     expect(files.map((file) => file.path)).toEqual(expect.arrayContaining(["rokit.toml", "wally.toml", "default.project.json", "src/shared/domain/Simulation.luau", "src/shared/schemas/Network.luau"]));
     expect(files.find((file) => file.path === "rokit.toml")?.content).toContain("luau-lang/lute@1.0.0");
     expect(files.find((file) => file.path === "src/shared/domain/TowerDefenseConfig.luau")?.content).toContain("minimumSeparation = 4");
+    expect(files.find((file) => file.path === "src/shared/domain/TowerDefenseConfig.luau")?.content).toContain("proceduralWaves = { enabled = false");
     expect(files.find((file) => file.path === "src/shared/schemas/Network.luau")?.content).toContain("export type PlaceTower");
     expect(files.find((file) => file.path === "src/shared/schemas/GameSchema.luau")?.content).toContain("export type Health");
     expect(files.find((file) => file.path === "src/shared/domain/Simulation.luau")?.content).toContain("Health: GameSchema.Health?");

@@ -14,6 +14,11 @@ describe("visual definition edits", () => {
     expect(updated.placement.minimumSeparation).toBe(8);
   });
 
+  it("persists procedural wave configuration", () => {
+    const updated = applyCanvasEdit(sampleDefinition(), { kind: "setProceduralWaveRule", field: "healthGrowth", amount: 1.2 });
+    expect(updated.proceduralWaves.healthGrowth).toBe(1.2);
+  });
+
   it("adds a unique network schema without mutating the source", () => {
     const source = sampleDefinition();
     const updated = applyCanvasEdit(source, { kind: "addMessage" });

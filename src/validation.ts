@@ -8,6 +8,7 @@ export function validateDefinition(definition: TowerDefenseDefinition): Diagnost
   if (!definition.name.trim()) diagnostics.push({ path: "name", message: "Project name is required." });
   if (!definition.targeting.length) diagnostics.push({ path: "targeting", message: "Choose at least one targeting mode." });
   if (![definition.placement.width, definition.placement.depth].every((value) => Number.isFinite(value) && value > 0) || !Number.isFinite(definition.placement.minimumSeparation) || definition.placement.minimumSeparation < 0) diagnostics.push({ path: "placement", message: "Map bounds must be positive and tower separation cannot be negative." });
+  if (![definition.proceduralWaves.baseCount, definition.proceduralWaves.countPerWave].every((value) => Number.isFinite(value) && value >= 0) || ![definition.proceduralWaves.healthGrowth, definition.proceduralWaves.rewardGrowth].every((value) => Number.isFinite(value) && value > 0)) diagnostics.push({ path: "proceduralWaves", message: "Procedural wave values need nonnegative counts and positive growth multipliers." });
   if (!definition.flow.length) diagnostics.push({ path: "flow", message: "Add at least one simulation block." });
   const blockIds = new Set<string>();
   for (const block of definition.flow) {
