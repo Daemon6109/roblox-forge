@@ -5,7 +5,7 @@ const vscode = require("vscode");
 
 suite("Roblox Forge extension host", () => {
   const root = () => vscode.workspace.workspaceFolders[0].uri.fsPath;
-  const generatedPaths = [".forge", "src", "tests", "wally.toml", "default.project.json"];
+  const generatedPaths = [".forge", "src", "tests", "wally.toml", "default.project.json", "rokit.toml"];
 
   setup(async () => {
     for (const relativePath of generatedPaths) await fs.rm(path.join(root(), relativePath), { recursive: true, force: true });
