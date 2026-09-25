@@ -9,6 +9,11 @@ describe("visual definition edits", () => {
     expect(updated.targeting).toContain("last");
   });
 
+  it("persists validated visual placement rules", () => {
+    const updated = applyCanvasEdit(sampleDefinition(), { kind: "setPlacementRule", field: "minimumSeparation", amount: 8 });
+    expect(updated.placement.minimumSeparation).toBe(8);
+  });
+
   it("adds a unique network schema without mutating the source", () => {
     const source = sampleDefinition();
     const updated = applyCanvasEdit(source, { kind: "addMessage" });

@@ -26,6 +26,7 @@ export type ReusableRoutine = { id: string; name: string; steps: StateMutation[]
 export type TowerArchetype = { id: string; name: string; cost: number; damage: number; range: number; cooldown: number; targeting: TowerDefenseDefinition["targeting"][number] };
 export type EnemyArchetype = { id: string; name: string; health: number; speed: number; reward: number };
 export type AuthoredWave = { id: string; wave: number; enemyId: string; count: number; interval: number };
+export type PlacementRules = { width: number; depth: number; minimumSeparation: number };
 export type SimulationBlock = { id: string; kind: SimulationBlockKind; enabled: boolean; label: string; position: GraphPosition; config: Record<string, number>; bindings: string[]; routineId?: string; stateMutation?: StateMutation; stateCondition?: StateCondition; code?: string };
 
 export type TowerDefenseDefinition = {
@@ -34,6 +35,7 @@ export type TowerDefenseDefinition = {
   name: string;
   topology: "spline" | "graph" | "lanes";
   economy: "shared" | "per-player";
+  placement: PlacementRules;
   targeting: Array<"first" | "last" | "strongest" | "weakest" | "nearest">;
   messages: NetworkMessage[];
   packages: PackageDependency[];
@@ -51,6 +53,7 @@ export type TowerDefenseDefinition = {
 export type CanvasEdit =
   | { kind: "setTopology"; value: TowerDefenseDefinition["topology"] }
   | { kind: "setEconomy"; value: TowerDefenseDefinition["economy"] }
+  | { kind: "setPlacementRule"; field: keyof PlacementRules; amount: number }
   | { kind: "toggleTargeting"; value: TowerDefenseDefinition["targeting"][number] }
   | { kind: "addMessage" }
   | { kind: "removeMessage"; value: string }
@@ -140,10 +143,10 @@ const defaultFlow = (): SimulationBlock[] => [
   { id: "cleanup-dead", kind: "cleanupDead", enabled: true, position: { x: 260, y: 710 }, bindings: ["health"], ...structuredClone(blockDefaults.cleanupDead) }
 ];
 
-export function hydrateDefinition(value: Omit<TowerDefenseDefinition, "flow" | "connections" | "schemas" | "tests" | "packages" | "routines" | "towers" | "enemies" | "waves" | "scenarios"> & Partial<Pick<TowerDefenseDefinition, "flow" | "connections" | "schemas" | "tests" | "packages" | "routines" | "towers" | "enemies" | "waves" | "scenarios">>): TowerDefenseDefinition {
+export function hydrateDefinition(value: Omit<TowerDefenseDefinition, "placement" | "flow" | "connections" | "schemas" | "tests" | "packages" | "routines" | "towers" | "enemies" | "waves" | "scenarios"> & Partial<Pick<TowerDefenseDefinition, "placement" | "flow" | "connections" | "schemas" | "tests" | "packages" | "routines" | "towers" | "enemies" | "waves" | "scenarios">>): TowerDefenseDefinition {
   const flow = value.flow?.length ? value.flow.map((block, index) => ({ ...structuredClone(blockDefaults[block.kind]), ...block, bindings: block.bindings ?? [], stateMutation: block.kind === "mutateState" ? { field: "currency" as StateField, operation: "add" as const, amount: 10, ...block.stateMutation, operand: block.stateMutation?.operand ?? { source: "literal" as const, amount: block.stateMutation?.amount ?? 10 } } : block.stateMutation, stateCondition: block.kind === "condition" ? block.stateCondition ?? { field: "lives", comparison: ">", amount: 0 } : block.stateCondition, position: block.position ?? { x: 260, y: 60 + index * 130 }, config: { ...blockDefaults[block.kind].config, ...block.config } })) : defaultFlow();
   const connections = value.connections ?? flow.slice(1).map((block, index) => ({ from: flow[index].id, to: block.id }));
-  return { ...value, flow, connections, schemas: value.schemas ?? defaultSchemas(), tests: value.tests ?? defaultTests(), packages: value.packages ?? [], routines: value.routines ?? [], towers: value.towers ?? defaultTowers(), enemies: value.enemies ?? defaultEnemies(), waves: value.waves ?? defaultWaves(), scenarios: value.scenarios ?? defaultScenarios() };
+  return { ...value, placement: { width: 100, depth: 100, minimumSeparation: 4, ...value.placement }, flow, connections, schemas: value.schemas ?? defaultSchemas(), tests: value.tests ?? defaultTests(), packages: value.packages ?? [], routines: value.routines ?? [], towers: value.towers ?? defaultTowers(), enemies: value.enemies ?? defaultEnemies(), waves: value.waves ?? defaultWaves(), scenarios: value.scenarios ?? defaultScenarios() };
 }
 
 function nextMessageName(messages: NetworkMessage[]) {
@@ -200,6 +203,10 @@ export function applyCanvasEdit(definition: TowerDefenseDefinition, edit: Canvas
     case "setEconomy":
       if (!economies.has(edit.value)) throw new Error("Unsupported economy model.");
       next.economy = edit.value;
+      break;
+    case "setPlacementRule":
+      if (!Number.isFinite(edit.amount) || edit.amount < 0 || (edit.field !== "minimumSeparation" && edit.amount <= 0)) throw new Error("Map bounds must be positive and minimum separation cannot be negative.");
+      next.placement[edit.field] = edit.amount;
       break;
     case "toggleTargeting":
       if (!targetModes.has(edit.value)) throw new Error("Unsupported targeting mode.");
@@ -533,6 +540,7 @@ export const sampleDefinition = (): TowerDefenseDefinition => {
     name: "My Tower Defense",
     topology: "spline",
     economy: "shared",
+    placement: { width: 100, depth: 100, minimumSeparation: 4 },
     targeting: ["first", "strongest", "nearest"],
     messages: [{ name: "PlaceTower", direction: "clientToServer", fields: [{ name: "towerId", type: "string" }, { name: "position", type: "Vector3" }] }],
     packages: [],
