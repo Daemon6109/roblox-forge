@@ -26,7 +26,7 @@ describe("generated portable Luau", () => {
     }
 
     await exec("rokit", ["install"], { cwd: root, timeout: 120_000 });
-    const modules = ["Targeting", "Placement", "Combat", "PathProgress", "StatusEffects", "Cooldowns", "Projectiles", "Upgrades"].map((name) => `src/shared/domain/${name}.luau`);
+    const modules = ["Targeting", "Placement", "Combat", "PathProgress", "StatusEffects", "Cooldowns", "Projectiles", "Upgrades", "ProceduralWaves"].map((name) => `src/shared/domain/${name}.luau`);
     const { stdout, stderr } = await exec("lute", ["check", ...modules], { cwd: root, timeout: 60_000 });
     expect(`${stdout}${stderr}`).not.toMatch(/error/i);
   }, 180_000);
