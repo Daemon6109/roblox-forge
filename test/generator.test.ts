@@ -51,7 +51,9 @@ describe("Tower Defense generator", () => {
     expect(files.find((file) => file.path === "src/shared/domain/WaveSchedule.luau")?.content).toContain('enemyId = "grunt"');
     expect(files.find((file) => file.path === "src/shared/domain/TowerDefenseSimulator.luau")?.content).toContain("function Simulator.simulate");
     expect(files.find((file) => file.path === "src/shared/domain/Targeting.luau")?.content).toContain("function Targeting.select");
+    expect(files.find((file) => file.path === "src/shared/domain/Placement.luau")?.content).toContain("function Placement.isAvailable");
     expect(files.find((file) => file.path === "tests/domain/Simulation.spec.luau")?.content).toContain("simulates authored waves without Studio");
+    expect(files.find((file) => file.path === "tests/domain/Simulation.spec.luau")?.content).toContain("rejects overlapping tower placement");
     expect(files.find((file) => file.path === "tests/domain/Simulation.spec.luau")?.content).toContain("Authored waves do not leak");
   });
 
