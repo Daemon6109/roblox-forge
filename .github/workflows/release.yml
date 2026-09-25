@@ -27,6 +27,9 @@ jobs:
           version: 1.2.0
           cache: true
 
+      - name: Trust Forge's pinned tool sources
+        run: rokit trust luau-lang/lute rojo-rbx/rojo
+
       - name: Install dependencies
         run: npm ci
 
